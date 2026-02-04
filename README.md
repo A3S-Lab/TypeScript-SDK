@@ -101,6 +101,451 @@ async function main() {
 main().catch(console.error);
 ```
 
+## Usage Examples
+
+### Multi-Turn Conversations
+
+```typescript
+import { A3sClient } from '@a3s-lab/code';
+
+const client = new A3sClient({ configDir: '~/.a3s' });
+
+async function multiTurnChat() {
+  await client.connect();
+
+  const { sessionId } = await client.createSession({
+    name: 'chat-session',
+    workspace: '/path/to/project',
+  });
+
+  // First turn
+  for await (const chunk of client.streamGenerate(sessionId, [
+    { role: 'ROLE_USER', content: 'List all TypeScript files in this project' }
+  ])) {
+    if (chunk.content) process.stdout.write(chunk.content);
+  }
+
+  // Second turn - context is preserved
+  for await (const chunk of client.streamGenerate(sessionId, [
+    { role: 'ROLE_USER', content: 'Now analyze the main entry point' }
+  ])) {
+    if (chunk.content) process.stdout.write(chunk.content);
+  }
+
+  // Get conversation history
+  const { messages } = await client.getMessages(sessionId, { limit: 10 });
+  console.log(`\nConversation has ${messages.length} messages`);
+
+  await client.destroySession(sessionId);
+  client.close();
+}
+```
+
+### Event Subscription
+
+```typescript
+import { A3sClient } from '@a3s-lab/code';
+
+const client = new A3sClient();
+
+async function subscribeToEvents() {
+  await client.connect();
+
+  const { sessionId } = await client.createSession({
+    name: 'event-demo',
+    workspace: '/tmp/workspace',
+  });
+
+  // Subscribe to all events
+  const eventStream = client.subscribeEvents(sessionId);
+
+  // Handle events in background
+  (async () => {
+    for await (const event of eventStream) {
+      console.log(`[${event.type}] ${event.message}`);
+
+      if (event.type === 'EVENT_TYPE_TOOL_CALLED') {
+        console.log(`  Tool: ${event.metadata?.tool_name}`);
+      }
+
+      if (event.type === 'EVENT_TYPE_CONFIRMATION_REQUIRED') {
+        console.log(`  Confirmation needed for: ${event.metadata?.tool_name}`);
+      }
+    }
+  })();
+
+  // Generate with tool usage
+  for await (const chunk of client.streamGenerate(sessionId, [
+    { role: 'ROLE_USER', content: 'Read the README.md file' }
+  ])) {
+    if (chunk.content) process.stdout.write(chunk.content);
+  }
+
+  await client.destroySession(sessionId);
+  client.close();
+}
+```
+
+### Human-in-the-Loop (HITL)
+
+```typescript
+import { A3sClient } from '@a3s-lab/code';
+
+const client = new A3sClient();
+
+async function hitlDemo() {
+  await client.connect();
+
+  const { sessionId } = await client.createSession({
+    name: 'hitl-demo',
+    workspace: '/path/to/project',
+  });
+
+  // Set confirmation policy - require approval for bash commands
+  await client.setConfirmationPolicy(sessionId, {
+    defaultAction: 'TIMEOUT_ACTION_REJECT',
+    timeoutMs: 30000,
+    rules: [
+      {
+        toolPattern: 'bash',
+        action: 'TIMEOUT_ACTION_REJECT',
+        requireConfirmation: true,
+      }
+    ]
+  });
+
+  // Subscribe to events to detect confirmation requests
+  const eventStream = client.subscribeEvents(sessionId);
+
+  (async () => {
+    for await (const event of eventStream) {
+      if (event.type === 'EVENT_TYPE_CONFIRMATION_REQUIRED') {
+        const toolName = event.metadata?.tool_name;
+        const toolArgs = event.metadata?.tool_args;
+
+        console.log(`\nConfirmation required:`);
+        console.log(`  Tool: ${toolName}`);
+        console.log(`  Args: ${toolArgs}`);
+
+        // Auto-approve for demo (in real app, prompt user)
+        const approved = true;
+
+        await client.confirmToolExecution(sessionId, {
+          approved,
+          reason: approved ? 'User approved' : 'User rejected',
+        });
+      }
+    }
+  })();
+
+  // This will trigger confirmation
+  for await (const chunk of client.streamGenerate(sessionId, [
+    { role: 'ROLE_USER', content: 'Run "ls -la" command' }
+  ])) {
+    if (chunk.content) process.stdout.write(chunk.content);
+  }
+
+  await client.destroySession(sessionId);
+  client.close();
+}
+```
+
+### Permission Policies
+
+```typescript
+import { A3sClient } from '@a3s-lab/code';
+
+const client = new A3sClient();
+
+async function permissionDemo() {
+  await client.connect();
+
+  const { sessionId } = await client.createSession({
+    name: 'permission-demo',
+    workspace: '/path/to/project',
+  });
+
+  // Set permission policy - read-only mode
+  await client.setPermissionPolicy(sessionId, {
+    defaultDecision: 'PERMISSION_DECISION_DENY',
+    rules: [
+      {
+        toolPattern: 'read',
+        decision: 'PERMISSION_DECISION_ALLOW',
+      },
+      {
+        toolPattern: 'grep',
+        decision: 'PERMISSION_DECISION_ALLOW',
+      },
+      {
+        toolPattern: 'glob',
+        decision: 'PERMISSION_DECISION_ALLOW',
+      },
+      {
+        toolPattern: 'ls',
+        decision: 'PERMISSION_DECISION_ALLOW',
+      },
+      {
+        toolPattern: 'write',
+        decision: 'PERMISSION_DECISION_DENY',
+      },
+      {
+        toolPattern: 'bash',
+        decision: 'PERMISSION_DECISION_ASK',
+      }
+    ]
+  });
+
+  // Check permission before operation
+  const canWrite = await client.checkPermission(sessionId, {
+    toolName: 'write',
+    args: { file_path: '/tmp/test.txt' }
+  });
+
+  console.log(`Can write: ${canWrite.decision === 'PERMISSION_DECISION_ALLOW'}`);
+
+  // This will be allowed (read-only tools)
+  for await (const chunk of client.streamGenerate(sessionId, [
+    { role: 'ROLE_USER', content: 'List all files in the current directory' }
+  ])) {
+    if (chunk.content) process.stdout.write(chunk.content);
+  }
+
+  await client.destroySession(sessionId);
+  client.close();
+}
+```
+
+### Provider Configuration
+
+```typescript
+import { A3sClient } from '@a3s-lab/code';
+
+const client = new A3sClient();
+
+async function providerDemo() {
+  await client.connect();
+
+  // List available providers
+  const { providers } = await client.listProviders();
+  console.log('Available providers:', providers.map(p => p.name));
+
+  // Add a new provider
+  await client.addProvider({
+    name: 'openai',
+    apiKey: 'sk-...',
+    baseUrl: 'https://api.openai.com/v1',
+    models: [
+      {
+        id: 'gpt-4',
+        name: 'GPT-4',
+        family: 'gpt',
+        toolCall: true,
+      }
+    ]
+  });
+
+  // Set default model
+  await client.setDefaultModel('openai', 'gpt-4');
+
+  // Get current default
+  const { provider, model } = await client.getDefaultModel();
+  console.log(`Default: ${provider}/${model}`);
+
+  // Create session with specific model
+  const { sessionId } = await client.createSession({
+    name: 'openai-session',
+    workspace: '/tmp/workspace',
+    llmConfig: {
+      provider: 'openai',
+      model: 'gpt-4',
+      temperature: 0.7,
+    }
+  });
+
+  await client.destroySession(sessionId);
+  client.close();
+}
+```
+
+### Context Management
+
+```typescript
+import { A3sClient } from '@a3s-lab/code';
+
+const client = new A3sClient();
+
+async function contextDemo() {
+  await client.connect();
+
+  const { sessionId } = await client.createSession({
+    name: 'context-demo',
+    workspace: '/path/to/project',
+  });
+
+  // Have a long conversation...
+  for (let i = 0; i < 10; i++) {
+    await client.generate(sessionId, [
+      { role: 'ROLE_USER', content: `Question ${i + 1}: Tell me about this project` }
+    ]);
+  }
+
+  // Check context usage
+  const usage = await client.getContextUsage(sessionId);
+  console.log(`Context tokens: ${usage.totalTokens}/${usage.maxTokens}`);
+  console.log(`Messages: ${usage.messageCount}`);
+
+  if (usage.totalTokens > usage.maxTokens * 0.8) {
+    console.log('Context is getting full, compacting...');
+
+    // Compact context using LLM summarization
+    const result = await client.compactContext(sessionId);
+    console.log(`Compacted: ${result.originalMessages} → ${result.compactedMessages} messages`);
+    console.log(`Saved: ${result.tokensSaved} tokens`);
+  }
+
+  await client.destroySession(sessionId);
+  client.close();
+}
+```
+
+### Skills Management
+
+```typescript
+import { A3sClient } from '@a3s-lab/code';
+import { readFileSync } from 'fs';
+
+const client = new A3sClient();
+
+async function skillsDemo() {
+  await client.connect();
+
+  const { sessionId } = await client.createSession({
+    name: 'skills-demo',
+    workspace: '/path/to/project',
+  });
+
+  // Load a custom skill from markdown file
+  const skillContent = readFileSync('./my-skill.md', 'utf-8');
+
+  await client.loadSkill(sessionId, 'my-custom-tool', skillContent);
+
+  // List all available skills
+  const { skills } = await client.listSkills(sessionId);
+  console.log('Available skills:', skills.map(s => s.name));
+
+  // Use the custom skill
+  for await (const chunk of client.streamGenerate(sessionId, [
+    { role: 'ROLE_USER', content: 'Use my-custom-tool to process data' }
+  ])) {
+    if (chunk.content) process.stdout.write(chunk.content);
+  }
+
+  // Unload the skill
+  await client.unloadSkill(sessionId, 'my-custom-tool');
+
+  await client.destroySession(sessionId);
+  client.close();
+}
+```
+
+### Todo/Task Tracking
+
+```typescript
+import { A3sClient } from '@a3s-lab/code';
+
+const client = new A3sClient();
+
+async function todoDemo() {
+  await client.connect();
+
+  const { sessionId } = await client.createSession({
+    name: 'todo-demo',
+    workspace: '/path/to/project',
+  });
+
+  // Set initial todos
+  await client.setTodos(sessionId, [
+    {
+      id: '1',
+      title: 'Analyze codebase structure',
+      description: 'Understand the project layout',
+      completed: false,
+    },
+    {
+      id: '2',
+      title: 'Fix bug in authentication',
+      description: 'User login fails with invalid token',
+      completed: false,
+    }
+  ]);
+
+  // Agent works on tasks...
+  await client.generate(sessionId, [
+    { role: 'ROLE_USER', content: 'Complete the first todo item' }
+  ]);
+
+  // Get updated todos
+  const { todos } = await client.getTodos(sessionId);
+  console.log('Todos:');
+  todos.forEach(todo => {
+    const status = todo.completed ? '✓' : '○';
+    console.log(`  ${status} ${todo.title}`);
+  });
+
+  await client.destroySession(sessionId);
+  client.close();
+}
+```
+
+### Operation Control
+
+```typescript
+import { A3sClient } from '@a3s-lab/code';
+
+const client = new A3sClient();
+
+async function controlDemo() {
+  await client.connect();
+
+  const { sessionId } = await client.createSession({
+    name: 'control-demo',
+    workspace: '/path/to/project',
+  });
+
+  // Start a long-running operation
+  const generatePromise = (async () => {
+    for await (const chunk of client.streamGenerate(sessionId, [
+      { role: 'ROLE_USER', content: 'Analyze all files in this large project' }
+    ])) {
+      if (chunk.content) process.stdout.write(chunk.content);
+    }
+  })();
+
+  // Cancel after 5 seconds
+  setTimeout(async () => {
+    console.log('\nCancelling operation...');
+    await client.cancel(sessionId);
+  }, 5000);
+
+  try {
+    await generatePromise;
+  } catch (error) {
+    console.log('Operation was cancelled');
+  }
+
+  // Pause and resume
+  await client.pause(sessionId);
+  console.log('Session paused');
+
+  await client.resume(sessionId);
+  console.log('Session resumed');
+
+  await client.destroySession(sessionId);
+  client.close();
+}
+```
+
 ## Configuration
 
 ### Environment Variables
