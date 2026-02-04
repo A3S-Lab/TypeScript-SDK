@@ -2,6 +2,10 @@
  * Configuration utilities for A3S Code Agent SDK
  */
 
+import { readFileSync, existsSync } from 'fs';
+import { join } from 'path';
+import { homedir } from 'os';
+
 export interface A3sConfig {
   /** gRPC server address */
   address: string;
@@ -13,6 +17,42 @@ export interface A3sConfig {
   apiKey?: string;
   /** Base URL override */
   baseUrl?: string;
+  /** Provider configurations */
+  providers?: ProviderConfig[];
+}
+
+export interface ProviderConfig {
+  name: string;
+  apiKey?: string;
+  baseUrl?: string;
+  models?: ModelConfigEntry[];
+}
+
+export interface ModelConfigEntry {
+  id: string;
+  name?: string;
+  family?: string;
+  apiKey?: string;
+  baseUrl?: string;
+  attachment?: boolean;
+  reasoning?: boolean;
+  toolCall?: boolean;
+  temperature?: boolean;
+  releaseDate?: string;
+  modalities?: {
+    input?: string[];
+    output?: string[];
+  };
+  cost?: {
+    input?: number;
+    output?: number;
+    cacheRead?: number;
+    cacheWrite?: number;
+  };
+  limit?: {
+    context?: number;
+    output?: number;
+  };
 }
 
 export interface ModelConfig {
@@ -20,6 +60,93 @@ export interface ModelConfig {
   model: string;
   apiKey?: string;
   baseUrl?: string;
+}
+
+/**
+ * Load configuration from a JSON file
+ *
+ * @param configPath Path to config.json file
+ * @returns Parsed configuration or undefined if file doesn't exist
+ */
+export function loadConfigFromFile(configPath: string): A3sConfig | undefined {
+  if (!existsSync(configPath)) {
+    return undefined;
+  }
+
+  try {
+    const content = readFileSync(configPath, 'utf-8');
+    const json = JSON.parse(content);
+
+    const config: A3sConfig = {
+      address: json.address || process.env.A3S_ADDRESS || 'localhost:50051',
+      defaultProvider: json.defaultProvider,
+      defaultModel: json.defaultModel,
+      providers: json.providers,
+    };
+
+    // Extract API key and base URL from default provider if available
+    if (config.defaultProvider && config.providers) {
+      const provider = config.providers.find(p => p.name === config.defaultProvider);
+      if (provider) {
+        config.apiKey = provider.apiKey;
+        config.baseUrl = provider.baseUrl;
+
+        // Check for model-specific overrides
+        if (config.defaultModel && provider.models) {
+          const model = provider.models.find(m => m.id === config.defaultModel);
+          if (model) {
+            config.apiKey = model.apiKey || config.apiKey;
+            config.baseUrl = model.baseUrl || config.baseUrl;
+          }
+        }
+      }
+    }
+
+    return config;
+  } catch (error) {
+    console.error(`Failed to load config from ${configPath}:`, error);
+    return undefined;
+  }
+}
+
+/**
+ * Load configuration from a directory
+ *
+ * Looks for config.json in the specified directory.
+ *
+ * @param configDir Directory containing config.json
+ * @returns Parsed configuration or undefined if not found
+ */
+export function loadConfigFromDir(configDir: string): A3sConfig | undefined {
+  const configPath = join(configDir, 'config.json');
+  return loadConfigFromFile(configPath);
+}
+
+/**
+ * Load configuration from default locations
+ *
+ * Tries to load from (in order):
+ * 1. ./config.json (current directory)
+ * 2. ~/.a3s/config.json (user home)
+ *
+ * @returns Parsed configuration or default config
+ */
+export function loadDefaultConfig(): A3sConfig {
+  // Try current directory
+  let config = loadConfigFromFile('config.json');
+  if (config) {
+    return config;
+  }
+
+  // Try ~/.a3s/config.json
+  const homeConfig = join(homedir(), '.a3s', 'config.json');
+  config = loadConfigFromFile(homeConfig);
+  if (config) {
+    return config;
+  }
+
+  // Return default config from environment
+  return getConfig();
 }
 
 /**

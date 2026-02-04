@@ -111,4 +111,14 @@ export {
   getModelConfig,
   getDefaultModel,
   printConfig,
+  loadConfigFromFile,
+  loadConfigFromDir,
+  loadDefaultConfig,
+} from './config.js';
+
+export type {
+  A3sConfig,
+  ProviderConfig,
+  ModelConfigEntry,
+  ModelConfig,
 } from './config.js';

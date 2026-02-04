@@ -509,6 +509,10 @@ export interface A3sClientOptions {
   useTls?: boolean;
   /** Connection timeout in milliseconds */
   timeout?: number;
+  /** Path to config directory containing config.json */
+  configDir?: string;
+  /** Path to config.json file */
+  configPath?: string;
 }
 
 // ============================================================================
@@ -526,13 +530,39 @@ type GrpcClient = any;
  * A3S Code Agent gRPC Client
  *
  * Provides a TypeScript interface to all CodeAgentService RPCs.
+ *
+ * @example
+ * ```typescript
+ * // Create client with config directory
+ * const client = new A3sClient({ configDir: '/path/to/a3s' });
+ *
+ * // Create client with config file
+ * const client = new A3sClient({ configPath: '/path/to/config.json' });
+ *
+ * // Create client with explicit address
+ * const client = new A3sClient({ address: 'localhost:50051' });
+ * ```
  */
 export class A3sClient {
   private client: GrpcClient;
   private address: string;
+  private configDir?: string;
 
   constructor(options: A3sClientOptions = {}) {
-    this.address = options.address || 'localhost:50051';
+    this.configDir = options.configDir;
+
+    // Load config from file if specified
+    let fileConfig: { address?: string; providers?: any[] } | undefined;
+    if (options.configPath) {
+      const { loadConfigFromFile } = require('./config');
+      fileConfig = loadConfigFromFile(options.configPath);
+    } else if (options.configDir) {
+      const { loadConfigFromDir } = require('./config');
+      fileConfig = loadConfigFromDir(options.configDir);
+    }
+
+    // Determine address: explicit > config file > default
+    this.address = options.address || fileConfig?.address || 'localhost:50051';
 
     // Load proto definition
     const packageDefinition = protoLoader.loadSync(PROTO_PATH, {
@@ -555,6 +585,20 @@ export class A3sClient {
 
     // Create client
     this.client = new CodeAgentService(this.address, credentials);
+  }
+
+  /**
+   * Get the config directory path
+   */
+  getConfigDir(): string | undefined {
+    return this.configDir;
+  }
+
+  /**
+   * Get the server address
+   */
+  getAddress(): string {
+    return this.address;
   }
 
   /**
