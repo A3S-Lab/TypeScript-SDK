@@ -2,11 +2,55 @@
 
 Comprehensive examples demonstrating all features of the A3S Code TypeScript SDK.
 
+## 🚀 Quick Start
+
+### 1. Start A3S Code Service
+
+```bash
+# Navigate to A3S Code directory
+cd /path/to/a3s
+
+# Start the service with configuration
+./target/debug/a3s-code -d .a3s -w /tmp/a3s-workspace
+```
+
+### 2. Configure Model (Important!)
+
+The examples use real LLM APIs configured in `a3s/.a3s/config.json`. You need to:
+
+1. **Choose a model provider** - Edit `a3s/.a3s/config.json`:
+   ```json
+   {
+     "defaultProvider": "openai",
+     "defaultModel": "kimi-k2.5",
+     "providers": [...]
+   }
+   ```
+
+2. **Available providers in config**:
+   - `anthropic` - Claude models (requires API key)
+   - `openai` - KIMI K2.5 model (configured with API key)
+
+3. **Restart A3S Code service** after changing configuration
+
+### 3. Run Examples
+
+```bash
+cd sdk/typescript/examples
+npm install
+npm run kimi-test    # Test with KIMI model
+npm run dev          # Simple test
+```
+
 ## Available Examples
 
 | Example | Description | Features |
 |---------|-------------|----------|
+| `kimi-test.ts` | **KIMI model test** | Test with KIMI K2.5 model, streaming, context usage |
 | `simple-test.ts` | Basic SDK usage | Health check, sessions, generation, streaming |
+| `chat-simulation.ts` | **Chat scenarios** | Multi-turn conversation, skills, streaming, context |
+| `code-generation-interactive.ts` | **Code generation** | Interactive code generation with file operations |
+| `skill-usage-demo.ts` | **Skill usage** | Skill loading, usage, and management |
 | `storage-configuration.ts` | Storage types | Memory vs File storage, persistence |
 | `hitl-confirmation.ts` | HITL system | Auto-approve, require-confirm, timeout behavior |
 | `external-tasks.ts` | External task handling | Lane handlers, task delegation, sandbox execution |
@@ -63,8 +107,16 @@ npm run storage
 ### Quick Run (with tsx, no build)
 
 ```bash
+# Test with real models
+npm run kimi-test        # Test with KIMI K2.5 model (recommended)
+npm run dev              # Simple test (uses default model)
+
+# Chat and code generation examples
+npm run chat             # Multi-turn chat simulation
+npm run code-gen         # Interactive code generation
+npm run skill-demo       # Skill usage demonstration
+
 # Basic examples
-npm run dev              # Simple test
 npm run storage          # Storage configuration
 npm run hitl             # HITL confirmation (interactive)
 npm run external-tasks   # External task handling
@@ -92,6 +144,72 @@ npm test
 ```
 
 ## Example Details
+
+### 🌟 KIMI Model Test (`kimi-test.ts`)
+
+**Demonstrates:**
+- Using KIMI K2.5 model (alternative to Anthropic)
+- Loading configuration from `a3s/.a3s/config.json`
+- Basic generation and streaming with Chinese prompts
+- Context usage tracking
+
+**Run:**
+```bash
+npm run kimi-test
+```
+
+**Expected output:**
+```
+KIMI Model Configuration:
+  Model ID: kimi-k2.5
+  Name: KIMI K2.5
+  Base URL: http://35.220.164.252:3888/v1
+
+✓ Response received:
+  我是一个 AI 编程助手...
+
+✓ Streaming complete
+```
+
+### 💬 Chat Simulation (`chat-simulation.ts`)
+
+**Demonstrates:**
+- Multi-turn conversation with context
+- Skill loading and usage
+- Streaming responses
+- Tool execution handling
+- Context management
+
+**Run:**
+```bash
+npm run chat
+```
+
+### 🔧 Code Generation Interactive (`code-generation-interactive.ts`)
+
+**Demonstrates:**
+- Interactive code generation
+- File operations (create, read, modify)
+- Tool result handling
+- Real-time streaming output
+
+**Run:**
+```bash
+npm run code-gen
+```
+
+### 📦 Skill Usage Demo (`skill-usage-demo.ts`)
+
+**Demonstrates:**
+- Discovering available skills
+- Loading skills into sessions
+- Using skill-provided tools
+- Skill management (load/unload)
+
+**Run:**
+```bash
+npm run skill-demo
+```
 
 ### 1. Simple Test (`simple-test.ts`)
 
