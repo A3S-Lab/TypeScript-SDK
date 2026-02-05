@@ -23,10 +23,11 @@
 
 ### Why This SDK?
 
-- **Complete API Coverage**: All 28+ RPCs from CodeAgentService
+- **100% API Coverage**: All 53 RPCs from CodeAgentService fully implemented
 - **Type-Safe**: Full TypeScript definitions for all types and enums
 - **Async/Await**: Modern Promise-based API with streaming support
 - **Flexible Configuration**: Environment variables, config files, or programmatic setup
+- **Real-World Examples**: Comprehensive examples with real LLM API integration
 
 ## Features
 
@@ -56,6 +57,8 @@ pnpm add @a3s-lab/code
 
 ## Quick Start
 
+### Basic Usage
+
 ```typescript
 import { A3sClient } from '@a3s-lab/code';
 
@@ -66,40 +69,68 @@ const client = new A3sClient();
 const client = new A3sClient({ address: 'localhost:4088' });
 
 // Or load from config file
-const client = new A3sClient({ configPath: '/path/to/config.json' });
+const client = new A3sClient({ configDir: '/path/to/.a3s' });
 
 async function main() {
-  // Connect to the agent
-  await client.connect();
-
   // Check health
   const health = await client.healthCheck();
   console.log('Agent status:', health.status);
 
   // Create a session
   const session = await client.createSession({
+    name: 'my-session',
     workspace: '/path/to/project',
     systemPrompt: 'You are a helpful coding assistant.',
   });
 
   // Generate a response (streaming)
-  const stream = client.generateStream(session.id, [
-    { role: 'user', content: 'Explain this codebase structure' }
-  ]);
-
-  for await (const chunk of stream) {
-    if (chunk.type === 'text') {
+  for await (const chunk of client.streamGenerate(session.sessionId, [
+    { role: 'ROLE_USER', content: 'Explain this codebase structure' }
+  ])) {
+    if (chunk.type === 'CHUNK_TYPE_CONTENT' && chunk.content) {
       process.stdout.write(chunk.content);
     }
   }
 
   // Clean up
-  await client.deleteSession(session.id);
-  await client.close();
+  await client.destroySession(session.sessionId);
+  client.close();
 }
 
 main().catch(console.error);
 ```
+
+### 📚 Complete Examples
+
+See the [examples](./examples) directory for comprehensive, runnable examples:
+
+| Example | Description | Run |
+|---------|-------------|-----|
+| [kimi-test.ts](./examples/src/kimi-test.ts) | Test with KIMI K2.5 model | `npm run kimi-test` |
+| [chat-simulation.ts](./examples/src/chat-simulation.ts) | Multi-turn chat with skills | `npm run chat` |
+| [code-generation-interactive.ts](./examples/src/code-generation-interactive.ts) | Interactive code generation | `npm run code-gen` |
+| [skill-usage-demo.ts](./examples/src/skill-usage-demo.ts) | Skill loading and usage | `npm run skill-demo` |
+| [simple-test.ts](./examples/src/simple-test.ts) | Basic SDK usage | `npm run dev` |
+| [storage-configuration.ts](./examples/src/storage-configuration.ts) | Memory vs file storage | `npm run storage` |
+| [hitl-confirmation.ts](./examples/src/hitl-confirmation.ts) | Human-in-the-loop | `npm run hitl` |
+| [provider-config.ts](./examples/src/provider-config.ts) | Provider management | `npm run provider` |
+| [context-management.ts](./examples/src/context-management.ts) | Context monitoring | `npm run context` |
+| [code-review-agent.ts](./examples/src/code-review-agent.ts) | Complete production example | `npm run code-review` |
+
+**Quick start with examples:**
+
+```bash
+cd examples
+npm install
+
+# Test with KIMI model (recommended)
+npm run kimi-test
+
+# Try chat simulation
+npm run chat
+```
+
+See [examples/README.md](./examples/README.md) for detailed documentation and [TESTING_WITH_REAL_MODELS.md](./examples/TESTING_WITH_REAL_MODELS.md) for API configuration guide.
 
 ## Usage Examples
 
