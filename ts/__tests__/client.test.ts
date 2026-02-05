@@ -129,7 +129,7 @@ describe('A3sClient', () => {
   beforeEach(() => {
     // Reset all mocks
     vi.clearAllMocks();
-    client = new A3sClient({ address: 'localhost:50051' });
+    client = new A3sClient({ address: 'localhost:4088' });
   });
 
   describe('constructor', () => {

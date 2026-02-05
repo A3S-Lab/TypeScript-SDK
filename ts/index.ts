@@ -5,7 +5,7 @@
  * for interacting with the A3S Code Agent Service.
  */
 
-export { A3sClient } from './client.js';
+export { A3sClient, StorageType, SessionLane, TimeoutAction, TaskHandlerMode } from './client.js';
 export type {
   A3sClientOptions,
   // Lifecycle types
@@ -65,14 +65,14 @@ export type {
   PauseResponse,
   ResumeResponse,
   // HITL types
-  SessionLane,
-  TimeoutAction,
+  SessionLaneType,
+  TimeoutActionType,
   ConfirmationPolicy,
   ConfirmToolExecutionResponse,
   SetConfirmationPolicyResponse,
   GetConfirmationPolicyResponse,
   // External task types
-  TaskHandlerMode,
+  TaskHandlerModeType,
   LaneHandlerConfig,
   ExternalTask,
   SetLaneHandlerResponse,

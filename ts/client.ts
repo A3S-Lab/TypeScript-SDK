@@ -8,6 +8,7 @@ import * as grpc from '@grpc/grpc-js';
 import * as protoLoader from '@grpc/proto-loader';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import { loadConfigFromFile, loadConfigFromDir } from './config.js';
 
 // Get the directory of this module
 const __filename = fileURLToPath(import.meta.url);
@@ -28,10 +29,39 @@ export type MessageRole = 'ROLE_UNKNOWN' | 'ROLE_USER' | 'ROLE_ASSISTANT' | 'ROL
 export type FinishReason = 'FINISH_REASON_UNKNOWN' | 'FINISH_REASON_STOP' | 'FINISH_REASON_LENGTH' | 'FINISH_REASON_TOOL_CALLS' | 'FINISH_REASON_CONTENT_FILTER' | 'FINISH_REASON_ERROR';
 export type ChunkType = 'CHUNK_TYPE_UNKNOWN' | 'CHUNK_TYPE_CONTENT' | 'CHUNK_TYPE_TOOL_CALL' | 'CHUNK_TYPE_TOOL_RESULT' | 'CHUNK_TYPE_METADATA' | 'CHUNK_TYPE_DONE';
 export type EventType = 'EVENT_TYPE_UNKNOWN' | 'EVENT_TYPE_SESSION_CREATED' | 'EVENT_TYPE_SESSION_DESTROYED' | 'EVENT_TYPE_GENERATION_STARTED' | 'EVENT_TYPE_GENERATION_COMPLETED' | 'EVENT_TYPE_TOOL_CALLED' | 'EVENT_TYPE_TOOL_COMPLETED' | 'EVENT_TYPE_ERROR' | 'EVENT_TYPE_WARNING' | 'EVENT_TYPE_INFO' | 'EVENT_TYPE_CONFIRMATION_REQUIRED' | 'EVENT_TYPE_CONFIRMATION_RECEIVED' | 'EVENT_TYPE_CONFIRMATION_TIMEOUT' | 'EVENT_TYPE_EXTERNAL_TASK_PENDING' | 'EVENT_TYPE_EXTERNAL_TASK_COMPLETED' | 'EVENT_TYPE_PERMISSION_DENIED';
-export type SessionLane = 'SESSION_LANE_UNKNOWN' | 'SESSION_LANE_CONTROL' | 'SESSION_LANE_QUERY' | 'SESSION_LANE_EXECUTE' | 'SESSION_LANE_GENERATE';
-export type TimeoutAction = 'TIMEOUT_ACTION_UNKNOWN' | 'TIMEOUT_ACTION_REJECT' | 'TIMEOUT_ACTION_AUTO_APPROVE';
-export type TaskHandlerMode = 'TASK_HANDLER_MODE_UNKNOWN' | 'TASK_HANDLER_MODE_INTERNAL' | 'TASK_HANDLER_MODE_EXTERNAL' | 'TASK_HANDLER_MODE_HYBRID';
+export type SessionLaneType = 'SESSION_LANE_UNKNOWN' | 'SESSION_LANE_CONTROL' | 'SESSION_LANE_QUERY' | 'SESSION_LANE_EXECUTE' | 'SESSION_LANE_GENERATE';
+export type TimeoutActionType = 'TIMEOUT_ACTION_UNKNOWN' | 'TIMEOUT_ACTION_REJECT' | 'TIMEOUT_ACTION_AUTO_APPROVE';
+export type TaskHandlerModeType = 'TASK_HANDLER_MODE_UNKNOWN' | 'TASK_HANDLER_MODE_INTERNAL' | 'TASK_HANDLER_MODE_EXTERNAL' | 'TASK_HANDLER_MODE_HYBRID';
 export type PermissionDecision = 'PERMISSION_DECISION_UNKNOWN' | 'PERMISSION_DECISION_ALLOW' | 'PERMISSION_DECISION_DENY' | 'PERMISSION_DECISION_ASK';
+export type StorageTypeString = 'STORAGE_TYPE_UNSPECIFIED' | 'STORAGE_TYPE_MEMORY' | 'STORAGE_TYPE_FILE';
+
+// Numeric enum values
+export const StorageType = {
+  STORAGE_TYPE_UNSPECIFIED: 0,
+  STORAGE_TYPE_MEMORY: 1,
+  STORAGE_TYPE_FILE: 2,
+} as const;
+
+export const SessionLane = {
+  SESSION_LANE_UNKNOWN: 0,
+  SESSION_LANE_CONTROL: 1,
+  SESSION_LANE_QUERY: 2,
+  SESSION_LANE_EXECUTE: 3,
+  SESSION_LANE_GENERATE: 4,
+} as const;
+
+export const TimeoutAction = {
+  TIMEOUT_ACTION_UNKNOWN: 0,
+  TIMEOUT_ACTION_REJECT: 1,
+  TIMEOUT_ACTION_AUTO_APPROVE: 2,
+} as const;
+
+export const TaskHandlerMode = {
+  TASK_HANDLER_MODE_UNKNOWN: 0,
+  TASK_HANDLER_MODE_INTERNAL: 1,
+  TASK_HANDLER_MODE_EXTERNAL: 2,
+  TASK_HANDLER_MODE_HYBRID: 3,
+} as const;
 
 // --- Lifecycle Types ---
 
@@ -107,6 +137,7 @@ export interface SessionConfig {
   systemPrompt?: string;
   maxContextLength?: number;
   autoCompact?: boolean;
+  storageType?: number;  // StorageType enum value
 }
 
 export interface ContextUsage {
@@ -313,8 +344,8 @@ export interface ConfirmationPolicy {
   autoApproveTools: string[];
   requireConfirmTools: string[];
   defaultTimeoutMs: number;
-  timeoutAction: TimeoutAction;
-  yoloLanes: SessionLane[];
+  timeoutAction: TimeoutActionType;
+  yoloLanes: SessionLaneType[];
 }
 
 export interface ConfirmToolExecutionResponse {
@@ -334,14 +365,14 @@ export interface GetConfirmationPolicyResponse {
 // --- External Task Types ---
 
 export interface LaneHandlerConfig {
-  mode: TaskHandlerMode;
+  mode: TaskHandlerModeType;
   timeoutMs: number;
 }
 
 export interface ExternalTask {
   taskId: string;
   sessionId: string;
-  lane: SessionLane;
+  lane: SessionLaneType;
   commandType: string;
   payload: string;
   timeoutMs: number;
@@ -503,7 +534,7 @@ export interface GetDefaultModelResponse {
 // ============================================================================
 
 export interface A3sClientOptions {
-  /** gRPC server address (default: localhost:50051) */
+  /** gRPC server address (default: localhost:4088) */
   address?: string;
   /** Use TLS for connection */
   useTls?: boolean;
@@ -540,7 +571,7 @@ type GrpcClient = any;
  * const client = new A3sClient({ configPath: '/path/to/config.json' });
  *
  * // Create client with explicit address
- * const client = new A3sClient({ address: 'localhost:50051' });
+ * const client = new A3sClient({ address: 'localhost:4088' });
  * ```
  */
 export class A3sClient {
@@ -554,15 +585,13 @@ export class A3sClient {
     // Load config from file if specified
     let fileConfig: { address?: string; providers?: any[] } | undefined;
     if (options.configPath) {
-      const { loadConfigFromFile } = require('./config');
       fileConfig = loadConfigFromFile(options.configPath);
     } else if (options.configDir) {
-      const { loadConfigFromDir } = require('./config');
       fileConfig = loadConfigFromDir(options.configDir);
     }
 
     // Determine address: explicit > config file > default
-    this.address = options.address || fileConfig?.address || 'localhost:50051';
+    this.address = options.address || fileConfig?.address || 'localhost:4088';
 
     // Load proto definition
     const packageDefinition = protoLoader.loadSync(PROTO_PATH, {
@@ -923,7 +952,7 @@ export class A3sClient {
    */
   async setLaneHandler(
     sessionId: string,
-    lane: SessionLane,
+    lane: SessionLaneType,
     config: LaneHandlerConfig
   ): Promise<SetLaneHandlerResponse> {
     return this.promisify('setLaneHandler', { sessionId, lane, config });
@@ -934,7 +963,7 @@ export class A3sClient {
    */
   async getLaneHandler(
     sessionId: string,
-    lane: SessionLane
+    lane: SessionLaneType
   ): Promise<GetLaneHandlerResponse> {
     return this.promisify('getLaneHandler', { sessionId, lane });
   }

@@ -78,7 +78,7 @@ export function loadConfigFromFile(configPath: string): A3sConfig | undefined {
     const json = JSON.parse(content);
 
     const config: A3sConfig = {
-      address: json.address || process.env.A3S_ADDRESS || 'localhost:50051',
+      address: json.address || process.env.A3S_ADDRESS || 'localhost:4088',
       defaultProvider: json.defaultProvider,
       defaultModel: json.defaultModel,
       providers: json.providers,
@@ -153,7 +153,7 @@ export function loadDefaultConfig(): A3sConfig {
  * Get configuration from environment variables
  *
  * Environment variables:
- * - A3S_ADDRESS: gRPC server address (default: localhost:50051)
+ * - A3S_ADDRESS: gRPC server address (default: localhost:4088)
  * - A3S_DEFAULT_PROVIDER: Default provider name
  * - A3S_DEFAULT_MODEL: Default model ID
  * - A3S_API_KEY: API key for the default provider
@@ -161,7 +161,7 @@ export function loadDefaultConfig(): A3sConfig {
  */
 export function getConfig(): A3sConfig {
   return {
-    address: process.env.A3S_ADDRESS || 'localhost:50051',
+    address: process.env.A3S_ADDRESS || 'localhost:4088',
     defaultProvider: process.env.A3S_DEFAULT_PROVIDER,
     defaultModel: process.env.A3S_DEFAULT_MODEL,
     apiKey: process.env.A3S_API_KEY,
