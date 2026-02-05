@@ -309,6 +309,18 @@ export interface ListSkillsResponse {
   skills: Skill[];
 }
 
+export interface ClaudeCodeSkill {
+  name: string;
+  description: string;
+  allowedTools?: string;
+  disableModelInvocation: boolean;
+  content: string;
+}
+
+export interface GetClaudeCodeSkillsResponse {
+  skills: ClaudeCodeSkill[];
+}
+
 // --- Context Types ---
 
 export interface GetContextUsageResponse {
@@ -633,6 +645,69 @@ export interface GetMemoryStatsResponse {
 export interface ClearMemoriesResponse {
   success: boolean;
   clearedCount: number;
+}
+
+// --- MCP (Model Context Protocol) Types ---
+
+export interface McpStdioTransport {
+  command: string;
+  args: string[];
+}
+
+export interface McpHttpTransport {
+  url: string;
+  headers: Record<string, string>;
+}
+
+export interface McpTransport {
+  stdio?: McpStdioTransport;
+  http?: McpHttpTransport;
+}
+
+export interface McpServerConfig {
+  name: string;
+  transport: McpTransport;
+  enabled: boolean;
+  env: Record<string, string>;
+}
+
+export interface RegisterMcpServerResponse {
+  success: boolean;
+  message: string;
+}
+
+export interface ConnectMcpServerResponse {
+  success: boolean;
+  message: string;
+  toolNames: string[];
+}
+
+export interface DisconnectMcpServerResponse {
+  success: boolean;
+}
+
+export interface McpServerInfo {
+  name: string;
+  connected: boolean;
+  enabled: boolean;
+  toolCount: number;
+  error?: string;
+}
+
+export interface ListMcpServersResponse {
+  servers: McpServerInfo[];
+}
+
+export interface McpToolInfo {
+  fullName: string;
+  serverName: string;
+  toolName: string;
+  description: string;
+  inputSchema: string;
+}
+
+export interface GetMcpToolsResponse {
+  tools: McpToolInfo[];
 }
 
 // --- LSP (Language Server Protocol) Types ---
@@ -1086,6 +1161,13 @@ export class A3sClient {
     return this.promisify('listSkills', { sessionId });
   }
 
+  /**
+   * Get Claude Code skills
+   */
+  async getClaudeCodeSkills(name?: string): Promise<GetClaudeCodeSkillsResponse> {
+    return this.promisify('getClaudeCodeSkills', { name });
+  }
+
   // ==========================================================================
   // Context Management
   // ==========================================================================
@@ -1484,6 +1566,45 @@ export class A3sClient {
       clearShortTerm: clearShortTerm || false,
       clearWorking: clearWorking || false,
     });
+  }
+
+  // ==========================================================================
+  // MCP (Model Context Protocol) Methods
+  // ==========================================================================
+
+  /**
+   * Register an MCP server
+   */
+  async registerMcpServer(config: McpServerConfig): Promise<RegisterMcpServerResponse> {
+    return this.promisify('registerMcpServer', { config });
+  }
+
+  /**
+   * Connect to an MCP server
+   */
+  async connectMcpServer(name: string): Promise<ConnectMcpServerResponse> {
+    return this.promisify('connectMcpServer', { name });
+  }
+
+  /**
+   * Disconnect from an MCP server
+   */
+  async disconnectMcpServer(name: string): Promise<DisconnectMcpServerResponse> {
+    return this.promisify('disconnectMcpServer', { name });
+  }
+
+  /**
+   * List all MCP servers
+   */
+  async listMcpServers(): Promise<ListMcpServersResponse> {
+    return this.promisify('listMcpServers', {});
+  }
+
+  /**
+   * Get MCP tools
+   */
+  async getMcpTools(serverName?: string): Promise<GetMcpToolsResponse> {
+    return this.promisify('getMcpTools', { serverName });
   }
 
   // ==========================================================================
