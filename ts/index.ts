@@ -5,7 +5,7 @@
  * for interacting with the A3S Code Agent Service.
  */
 
-export { A3sClient, StorageType, SessionLane, TimeoutAction, TaskHandlerMode } from './client.js';
+export { A3sClient, StorageType, SessionLane, TimeoutAction, TaskHandlerMode, CronJobStatusEnum, CronExecutionStatusEnum } from './client.js';
 export type {
   A3sClientOptions,
   // Lifecycle types
@@ -138,6 +138,21 @@ export type {
   LspReferencesResponse,
   LspSymbolsResponse,
   LspDiagnosticsResponse,
+  // Cron (Scheduled Tasks) types
+  CronJobStatus,
+  CronExecutionStatus,
+  CronJob,
+  CronExecution,
+  ListCronJobsResponse,
+  CreateCronJobResponse,
+  GetCronJobResponse,
+  UpdateCronJobResponse,
+  PauseCronJobResponse,
+  ResumeCronJobResponse,
+  DeleteCronJobResponse,
+  GetCronHistoryResponse,
+  RunCronJobResponse,
+  ParseCronScheduleResponse,
 } from './client.js';
 
 export {

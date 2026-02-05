@@ -786,6 +786,109 @@ export interface LspDiagnosticsResponse {
   diagnostics: LspDiagnostic[];
 }
 
+// --- Cron (Scheduled Tasks) Types ---
+
+export type CronJobStatus = 'CRON_JOB_STATUS_UNKNOWN' | 'CRON_JOB_STATUS_ACTIVE' | 'CRON_JOB_STATUS_PAUSED' | 'CRON_JOB_STATUS_RUNNING';
+export type CronExecutionStatus = 'CRON_EXECUTION_STATUS_UNKNOWN' | 'CRON_EXECUTION_STATUS_SUCCESS' | 'CRON_EXECUTION_STATUS_FAILED' | 'CRON_EXECUTION_STATUS_TIMEOUT' | 'CRON_EXECUTION_STATUS_CANCELLED';
+
+export const CronJobStatusEnum = {
+  UNKNOWN: 0,
+  ACTIVE: 1,
+  PAUSED: 2,
+  RUNNING: 3,
+} as const;
+
+export const CronExecutionStatusEnum = {
+  UNKNOWN: 0,
+  SUCCESS: 1,
+  FAILED: 2,
+  TIMEOUT: 3,
+  CANCELLED: 4,
+} as const;
+
+export interface CronJob {
+  id: string;
+  name: string;
+  schedule: string;
+  command: string;
+  status: number;
+  timeoutMs: number;
+  createdAt: number;
+  updatedAt: number;
+  lastRun?: number;
+  nextRun?: number;
+  runCount: number;
+  failCount: number;
+  workingDir?: string;
+}
+
+export interface CronExecution {
+  id: string;
+  jobId: string;
+  status: number;
+  startedAt: number;
+  endedAt?: number;
+  durationMs?: number;
+  exitCode?: number;
+  stdout: string;
+  stderr: string;
+  error?: string;
+}
+
+export interface ListCronJobsResponse {
+  jobs: CronJob[];
+}
+
+export interface CreateCronJobResponse {
+  success: boolean;
+  job?: CronJob;
+  error: string;
+}
+
+export interface GetCronJobResponse {
+  job?: CronJob;
+}
+
+export interface UpdateCronJobResponse {
+  success: boolean;
+  job?: CronJob;
+  error: string;
+}
+
+export interface PauseCronJobResponse {
+  success: boolean;
+  job?: CronJob;
+  error: string;
+}
+
+export interface ResumeCronJobResponse {
+  success: boolean;
+  job?: CronJob;
+  error: string;
+}
+
+export interface DeleteCronJobResponse {
+  success: boolean;
+  error: string;
+}
+
+export interface GetCronHistoryResponse {
+  executions: CronExecution[];
+}
+
+export interface RunCronJobResponse {
+  success: boolean;
+  execution?: CronExecution;
+  error: string;
+}
+
+export interface ParseCronScheduleResponse {
+  success: boolean;
+  cronExpression: string;
+  description: string;
+  error: string;
+}
+
 // ============================================================================
 // Client Options
 // ============================================================================
@@ -1702,6 +1805,117 @@ export class A3sClient {
     return this.promisify('lspDiagnostics', {
       filePath: filePath || '',
     });
+  }
+
+  // ==========================================================================
+  // Cron (Scheduled Tasks)
+  // ==========================================================================
+
+  /**
+   * List all cron jobs
+   */
+  async listCronJobs(): Promise<ListCronJobsResponse> {
+    return this.promisify('listCronJobs', {});
+  }
+
+  /**
+   * Create a new cron job
+   * @param name Job name
+   * @param schedule Schedule expression (cron syntax or natural language)
+   * @param command Command to execute
+   * @param timeoutMs Execution timeout in milliseconds (default: 60000)
+   */
+  async createCronJob(
+    name: string,
+    schedule: string,
+    command: string,
+    timeoutMs?: number
+  ): Promise<CreateCronJobResponse> {
+    return this.promisify('createCronJob', {
+      name,
+      schedule,
+      command,
+      timeoutMs,
+    });
+  }
+
+  /**
+   * Get a cron job by ID or name
+   * @param id Job ID
+   * @param name Job name (alternative to ID)
+   */
+  async getCronJob(id?: string, name?: string): Promise<GetCronJobResponse> {
+    return this.promisify('getCronJob', { id, name });
+  }
+
+  /**
+   * Update a cron job
+   * @param id Job ID
+   * @param schedule New schedule expression
+   * @param command New command
+   * @param timeoutMs New timeout
+   */
+  async updateCronJob(
+    id: string,
+    schedule?: string,
+    command?: string,
+    timeoutMs?: number
+  ): Promise<UpdateCronJobResponse> {
+    return this.promisify('updateCronJob', {
+      id,
+      schedule,
+      command,
+      timeoutMs,
+    });
+  }
+
+  /**
+   * Pause a cron job
+   * @param id Job ID
+   */
+  async pauseCronJob(id: string): Promise<PauseCronJobResponse> {
+    return this.promisify('pauseCronJob', { id });
+  }
+
+  /**
+   * Resume a paused cron job
+   * @param id Job ID
+   */
+  async resumeCronJob(id: string): Promise<ResumeCronJobResponse> {
+    return this.promisify('resumeCronJob', { id });
+  }
+
+  /**
+   * Delete a cron job
+   * @param id Job ID
+   */
+  async deleteCronJob(id: string): Promise<DeleteCronJobResponse> {
+    return this.promisify('deleteCronJob', { id });
+  }
+
+  /**
+   * Get execution history for a cron job
+   * @param id Job ID
+   * @param limit Max records to return (default: 10)
+   */
+  async getCronHistory(id: string, limit?: number): Promise<GetCronHistoryResponse> {
+    return this.promisify('getCronHistory', { id, limit });
+  }
+
+  /**
+   * Manually run a cron job
+   * @param id Job ID
+   */
+  async runCronJob(id: string): Promise<RunCronJobResponse> {
+    return this.promisify('runCronJob', { id });
+  }
+
+  /**
+   * Parse natural language schedule to cron expression
+   * @param input Natural language or cron expression
+   */
+  async parseCronSchedule(input: string): Promise<ParseCronScheduleResponse> {
+    return this.promisify('parseCronSchedule', { input });
   }
 
   // ==========================================================================
