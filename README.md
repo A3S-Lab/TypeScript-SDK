@@ -9,10 +9,18 @@
 </p>
 
 <p align="center">
+  <img src="https://img.shields.io/badge/API_Coverage-100%25-brightgreen" alt="API Coverage">
+  <img src="https://img.shields.io/badge/Methods-53-blue" alt="Methods">
+  <img src="https://img.shields.io/badge/TypeScript-5.3+-blue" alt="TypeScript">
+  <img src="https://img.shields.io/badge/License-MIT-green" alt="License">
+</p>
+
+<p align="center">
   <a href="#features">Features</a> •
   <a href="#installation">Installation</a> •
   <a href="#quick-start">Quick Start</a> •
-  <a href="#api-reference">API Reference</a>
+  <a href="#api-reference">API Reference</a> •
+  <a href="./examples">Examples</a>
 </p>
 
 ---
@@ -34,16 +42,19 @@
 | Category | Features |
 |----------|----------|
 | **Lifecycle** | Health check, capabilities, initialization, shutdown |
-| **Sessions** | Create, list, get, delete sessions with persistence |
-| **Generation** | Streaming responses, context compaction, abort support |
-| **Tools** | Register/unregister skills, list available tools |
-| **Context** | Add/clear context, manage conversation history |
-| **Control** | Abort operations, cancel confirmations |
-| **Events** | Subscribe to real-time agent events |
-| **HITL** | Human-in-the-loop confirmations and responses |
-| **Permissions** | Fine-grained permission policies |
-| **Todos** | Task tracking for multi-step workflows |
-| **Providers** | Multi-provider LLM configuration |
+| **Sessions** | Create, list, get, configure, destroy with persistence |
+| **Generation** | Streaming/non-streaming responses, structured output, context compaction |
+| **Tools** | Load/unload skills, list available tools, custom tool registration |
+| **Context** | Add/clear context, manage conversation history, usage monitoring |
+| **Control** | Abort operations, pause/resume, cancel confirmations |
+| **Events** | Subscribe to real-time agent events, tool execution tracking |
+| **HITL** | Human-in-the-loop confirmations, approval workflows |
+| **Permissions** | Fine-grained permission policies, tool access control |
+| **Todos** | Task tracking for multi-step workflows, goal management |
+| **Providers** | Multi-provider LLM configuration (Anthropic, OpenAI, KIMI, etc.) |
+| **Planning** | Execution plans, goal extraction, achievement checking |
+| **Memory** | Episodic/semantic/procedural memory storage and retrieval |
+| **Storage** | Configurable session storage (memory, file, custom) |
 
 ## Installation
 
@@ -579,16 +590,111 @@ async function controlDemo() {
 
 ## Configuration
 
+### Using Real LLM APIs
+
+The SDK requires a running A3S Code service configured with real LLM API credentials. See [examples/TESTING_WITH_REAL_MODELS.md](./examples/TESTING_WITH_REAL_MODELS.md) for detailed setup instructions.
+
+**Quick setup:**
+
+1. **Configure A3S Code** - Edit `a3s/.a3s/config.json`:
+
+```json
+{
+  "defaultProvider": "openai",
+  "defaultModel": "kimi-k2.5",
+  "providers": [
+    {
+      "name": "anthropic",
+      "apiKey": "sk-ant-xxx",
+      "baseUrl": "https://api.anthropic.com",
+      "models": [
+        {
+          "id": "claude-sonnet-4-20250514",
+          "name": "Claude Sonnet 4",
+          "family": "claude-sonnet",
+          "toolCall": true
+        }
+      ]
+    },
+    {
+      "name": "openai",
+      "models": [
+        {
+          "id": "kimi-k2.5",
+          "name": "KIMI K2.5",
+          "apiKey": "sk-xxx",
+          "baseUrl": "http://your-endpoint/v1",
+          "toolCall": true
+        }
+      ]
+    }
+  ]
+}
+```
+
+2. **Start A3S Code service:**
+
+```bash
+cd /path/to/a3s
+./target/debug/a3s-code -d .a3s -w /tmp/a3s-workspace
+```
+
+3. **Use SDK with config:**
+
+```typescript
+import { A3sClient } from '@a3s-lab/code';
+
+// Load configuration from A3S Code config directory
+const client = new A3sClient({
+  address: 'localhost:4088',
+  configDir: '/path/to/a3s/.a3s'
+});
+
+// Create session - will use default model from config
+const session = await client.createSession({
+  name: 'my-session',
+  workspace: '/tmp/workspace'
+});
+
+// Or specify model explicitly
+const session = await client.createSession({
+  name: 'my-session',
+  workspace: '/tmp/workspace',
+  llm: {
+    provider: 'openai',
+    model: 'kimi-k2.5'
+  }
+});
+```
+
 ### Environment Variables
 
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `A3S_ADDRESS` | gRPC server address | `localhost:4088` |
-| `A3S_API_KEY` | API key for LLM provider | - |
-| `A3S_DEFAULT_PROVIDER` | Default LLM provider | - |
-| `A3S_DEFAULT_MODEL` | Default model ID | - |
+| `A3S_CONFIG_DIR` | Configuration directory | - |
 
-### Config File
+### Programmatic Configuration
+
+```typescript
+import { A3sClient, loadConfigFromDir } from '@a3s-lab/code';
+
+// Load config from directory
+const config = loadConfigFromDir('/path/to/.a3s');
+
+// Create client with loaded config
+const client = new A3sClient({
+  address: config.address || 'localhost:4088',
+  configDir: '/path/to/.a3s'
+});
+
+// Access config values
+console.log('Default provider:', config.defaultProvider);
+console.log('Default model:', config.defaultModel);
+console.log('API key:', config.apiKey ? '(set)' : '(not set)');
+```
+
+### Legacy Config File Format
 
 ```json
 {
@@ -611,48 +717,130 @@ async function controlDemo() {
 
 ### Client Methods
 
-#### Lifecycle
+#### Lifecycle (4 methods)
 
 | Method | Description |
 |--------|-------------|
-| `connect()` | Connect to the gRPC server |
-| `close()` | Close the connection |
 | `healthCheck()` | Check agent health status |
 | `getCapabilities()` | Get agent capabilities |
 | `initialize(workspace, env?)` | Initialize the agent |
 | `shutdown()` | Shutdown the agent |
 
-#### Sessions
+#### Sessions (6 methods)
 
 | Method | Description |
 |--------|-------------|
 | `createSession(config)` | Create a new session |
+| `destroySession(id)` | Destroy a session |
 | `listSessions()` | List all sessions |
 | `getSession(id)` | Get session by ID |
-| `deleteSession(id)` | Delete a session |
+| `configureSession(id, config)` | Update session configuration |
+| `getMessages(id, limit?)` | Get conversation history |
 
-#### Generation
+#### Generation (4 methods)
 
 | Method | Description |
 |--------|-------------|
 | `generate(sessionId, messages)` | Generate response (non-streaming) |
-| `generateStream(sessionId, messages)` | Generate response (streaming) |
+| `streamGenerate(sessionId, messages)` | Generate response (streaming) |
+| `generateStructured(sessionId, messages, schema)` | Generate structured output |
+| `streamGenerateStructured(sessionId, messages, schema)` | Stream structured output |
+
+#### Context Management (3 methods)
+
+| Method | Description |
+|--------|-------------|
+| `getContextUsage(sessionId)` | Get context token usage |
 | `compactContext(sessionId)` | Compact session context |
+| `clearContext(sessionId)` | Clear session context |
 
-#### Tools & Skills
+#### Skills (3 methods)
 
 | Method | Description |
 |--------|-------------|
-| `loadSkill(sessionId, name, content)` | Load a skill |
+| `loadSkill(sessionId, name)` | Load a skill |
 | `unloadSkill(sessionId, name)` | Unload a skill |
-| `listSkills(sessionId?)` | List loaded skills |
+| `listSkills(sessionId?)` | List available/loaded skills |
 
-#### Control
+#### Control (3 methods)
 
 | Method | Description |
 |--------|-------------|
-| `abort(sessionId)` | Abort running operation |
-| `cancelConfirmation(sessionId)` | Cancel pending confirmation |
+| `cancel(sessionId)` | Cancel running operation |
+| `pause(sessionId)` | Pause session |
+| `resume(sessionId)` | Resume session |
+
+#### Events (1 method)
+
+| Method | Description |
+|--------|-------------|
+| `subscribeEvents(sessionId)` | Subscribe to real-time events |
+
+#### HITL (3 methods)
+
+| Method | Description |
+|--------|-------------|
+| `confirmToolExecution(sessionId, response)` | Respond to confirmation request |
+| `setConfirmationPolicy(sessionId, policy)` | Set confirmation policy |
+| `getConfirmationPolicy(sessionId)` | Get confirmation policy |
+
+#### Permissions (4 methods)
+
+| Method | Description |
+|--------|-------------|
+| `setPermissionPolicy(sessionId, policy)` | Set permission policy |
+| `getPermissionPolicy(sessionId)` | Get permission policy |
+| `checkPermission(sessionId, request)` | Check tool permission |
+| `addPermissionRule(sessionId, rule)` | Add permission rule |
+
+#### External Tasks (4 methods)
+
+| Method | Description |
+|--------|-------------|
+| `setLaneHandler(sessionId, lane, handler)` | Set lane handler |
+| `getLaneHandler(sessionId, lane)` | Get lane handler |
+| `completeExternalTask(sessionId, taskId, result)` | Complete external task |
+| `listPendingExternalTasks(sessionId)` | List pending tasks |
+
+#### Todos (2 methods)
+
+| Method | Description |
+|--------|-------------|
+| `getTodos(sessionId)` | Get todo list |
+| `setTodos(sessionId, todos)` | Set todo list |
+
+#### Providers (7 methods)
+
+| Method | Description |
+|--------|-------------|
+| `listProviders()` | List available providers |
+| `getProvider(name)` | Get provider details |
+| `addProvider(provider)` | Add a provider |
+| `updateProvider(name, provider)` | Update provider |
+| `removeProvider(name)` | Remove provider |
+| `setDefaultModel(provider, model)` | Set default model |
+| `getDefaultModel()` | Get default model |
+
+#### Planning & Goals (4 methods)
+
+| Method | Description |
+|--------|-------------|
+| `createPlan(sessionId, prompt, context?)` | Create execution plan |
+| `getPlan(sessionId, planId)` | Get existing plan |
+| `extractGoal(sessionId, prompt)` | Extract goal from prompt |
+| `checkGoalAchievement(sessionId, goal, state)` | Check goal completion |
+
+#### Memory System (5 methods)
+
+| Method | Description |
+|--------|-------------|
+| `storeMemory(sessionId, memory)` | Store memory item |
+| `retrieveMemory(sessionId, memoryId)` | Retrieve memory by ID |
+| `searchMemories(sessionId, query, tags?, limit?)` | Search memories |
+| `getMemoryStats(sessionId)` | Get memory statistics |
+| `clearMemories(sessionId, type?)` | Clear memories |
+
+**Total: 53 methods (100% API coverage)**
 
 ### Types
 
