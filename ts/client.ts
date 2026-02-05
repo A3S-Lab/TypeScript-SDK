@@ -33,9 +33,12 @@ const PROTO_PATH = join(__dirname, '..', 'proto', 'code_agent.proto');
 
 export type HealthStatus = 'STATUS_UNKNOWN' | 'STATUS_HEALTHY' | 'STATUS_DEGRADED' | 'STATUS_UNHEALTHY';
 export type SessionState = 'SESSION_STATE_UNKNOWN' | 'SESSION_STATE_ACTIVE' | 'SESSION_STATE_PAUSED' | 'SESSION_STATE_COMPLETED' | 'SESSION_STATE_ERROR';
-export type MessageRole = 'ROLE_UNKNOWN' | 'ROLE_USER' | 'ROLE_ASSISTANT' | 'ROLE_SYSTEM' | 'ROLE_TOOL';
-export type FinishReason = 'FINISH_REASON_UNKNOWN' | 'FINISH_REASON_STOP' | 'FINISH_REASON_LENGTH' | 'FINISH_REASON_TOOL_CALLS' | 'FINISH_REASON_CONTENT_FILTER' | 'FINISH_REASON_ERROR';
-export type ChunkType = 'CHUNK_TYPE_UNKNOWN' | 'CHUNK_TYPE_CONTENT' | 'CHUNK_TYPE_TOOL_CALL' | 'CHUNK_TYPE_TOOL_RESULT' | 'CHUNK_TYPE_METADATA' | 'CHUNK_TYPE_DONE';
+// OpenAI-compatible string roles (proto now uses strings directly)
+export type MessageRole = 'user' | 'assistant' | 'system' | 'tool';
+// OpenAI-compatible finish reason (string values)
+export type FinishReason = 'stop' | 'length' | 'tool_calls' | 'content_filter' | 'error';
+// OpenAI-compatible chunk type (string values)
+export type ChunkType = 'content' | 'tool_call' | 'tool_result' | 'metadata' | 'done';
 export type EventType = 'EVENT_TYPE_UNKNOWN' | 'EVENT_TYPE_SESSION_CREATED' | 'EVENT_TYPE_SESSION_DESTROYED' | 'EVENT_TYPE_GENERATION_STARTED' | 'EVENT_TYPE_GENERATION_COMPLETED' | 'EVENT_TYPE_TOOL_CALLED' | 'EVENT_TYPE_TOOL_COMPLETED' | 'EVENT_TYPE_ERROR' | 'EVENT_TYPE_WARNING' | 'EVENT_TYPE_INFO' | 'EVENT_TYPE_CONFIRMATION_REQUIRED' | 'EVENT_TYPE_CONFIRMATION_RECEIVED' | 'EVENT_TYPE_CONFIRMATION_TIMEOUT' | 'EVENT_TYPE_EXTERNAL_TASK_PENDING' | 'EVENT_TYPE_EXTERNAL_TASK_COMPLETED' | 'EVENT_TYPE_PERMISSION_DENIED';
 export type SessionLaneType = 'SESSION_LANE_UNKNOWN' | 'SESSION_LANE_CONTROL' | 'SESSION_LANE_QUERY' | 'SESSION_LANE_EXECUTE' | 'SESSION_LANE_GENERATE';
 export type TimeoutActionType = 'TIMEOUT_ACTION_UNKNOWN' | 'TIMEOUT_ACTION_REJECT' | 'TIMEOUT_ACTION_AUTO_APPROVE';
@@ -267,6 +270,7 @@ export interface GenerateChunk {
   toolCall?: ToolCall;
   toolResult?: ToolResult;
   metadata: Record<string, string>;
+  finishReason?: FinishReason;
 }
 
 export interface GenerateStructuredResponse {
@@ -629,6 +633,82 @@ export interface GetMemoryStatsResponse {
 export interface ClearMemoriesResponse {
   success: boolean;
   clearedCount: number;
+}
+
+// --- LSP (Language Server Protocol) Types ---
+
+export interface LspServerInfo {
+  language: string;
+  name: string;
+  version?: string;
+  running: boolean;
+}
+
+export interface LspPosition {
+  line: number;
+  character: number;
+}
+
+export interface LspRange {
+  start: LspPosition;
+  end: LspPosition;
+}
+
+export interface LspLocation {
+  uri: string;
+  range?: LspRange;
+}
+
+export interface LspSymbol {
+  name: string;
+  kind: string;
+  location?: LspLocation;
+  containerName?: string;
+}
+
+export interface LspDiagnostic {
+  uri: string;
+  range?: LspRange;
+  severity: string;
+  message: string;
+  code?: string;
+  source?: string;
+}
+
+export interface StartLspServerResponse {
+  success: boolean;
+  message: string;
+  serverInfo?: LspServerInfo;
+}
+
+export interface StopLspServerResponse {
+  success: boolean;
+}
+
+export interface ListLspServersResponse {
+  servers: LspServerInfo[];
+}
+
+export interface LspHoverResponse {
+  found: boolean;
+  content: string;
+  range?: LspRange;
+}
+
+export interface LspDefinitionResponse {
+  locations: LspLocation[];
+}
+
+export interface LspReferencesResponse {
+  locations: LspLocation[];
+}
+
+export interface LspSymbolsResponse {
+  symbols: LspSymbol[];
+}
+
+export interface LspDiagnosticsResponse {
+  diagnostics: LspDiagnostic[];
 }
 
 // ============================================================================
@@ -1403,6 +1483,103 @@ export class A3sClient {
       clearLongTerm: clearLongTerm || false,
       clearShortTerm: clearShortTerm || false,
       clearWorking: clearWorking || false,
+    });
+  }
+
+  // ==========================================================================
+  // LSP (Language Server Protocol) Methods
+  // ==========================================================================
+
+  /**
+   * Start a language server for a specific language
+   */
+  async startLspServer(
+    language: string,
+    rootUri?: string
+  ): Promise<StartLspServerResponse> {
+    return this.promisify('startLspServer', {
+      language,
+      rootUri: rootUri || '',
+    });
+  }
+
+  /**
+   * Stop a running language server
+   */
+  async stopLspServer(language: string): Promise<StopLspServerResponse> {
+    return this.promisify('stopLspServer', { language });
+  }
+
+  /**
+   * List all running language servers
+   */
+  async listLspServers(): Promise<ListLspServersResponse> {
+    return this.promisify('listLspServers', {});
+  }
+
+  /**
+   * Get hover information at a specific position
+   */
+  async lspHover(
+    filePath: string,
+    line: number,
+    column: number
+  ): Promise<LspHoverResponse> {
+    return this.promisify('lspHover', {
+      filePath,
+      line,
+      column,
+    });
+  }
+
+  /**
+   * Go to definition at a specific position
+   */
+  async lspDefinition(
+    filePath: string,
+    line: number,
+    column: number
+  ): Promise<LspDefinitionResponse> {
+    return this.promisify('lspDefinition', {
+      filePath,
+      line,
+      column,
+    });
+  }
+
+  /**
+   * Find all references at a specific position
+   */
+  async lspReferences(
+    filePath: string,
+    line: number,
+    column: number,
+    includeDeclaration?: boolean
+  ): Promise<LspReferencesResponse> {
+    return this.promisify('lspReferences', {
+      filePath,
+      line,
+      column,
+      includeDeclaration: includeDeclaration || false,
+    });
+  }
+
+  /**
+   * Search for symbols in the workspace
+   */
+  async lspSymbols(query: string, limit?: number): Promise<LspSymbolsResponse> {
+    return this.promisify('lspSymbols', {
+      query,
+      limit: limit || 20,
+    });
+  }
+
+  /**
+   * Get diagnostics for a file
+   */
+  async lspDiagnostics(filePath?: string): Promise<LspDiagnosticsResponse> {
+    return this.promisify('lspDiagnostics', {
+      filePath: filePath || '',
     });
   }
 

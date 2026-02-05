@@ -123,6 +123,21 @@ export type {
   SearchMemoriesResponse,
   GetMemoryStatsResponse,
   ClearMemoriesResponse,
+  // LSP (Language Server Protocol) types
+  LspServerInfo,
+  LspPosition,
+  LspRange,
+  LspLocation,
+  LspSymbol,
+  LspDiagnostic,
+  StartLspServerResponse,
+  StopLspServerResponse,
+  ListLspServersResponse,
+  LspHoverResponse,
+  LspDefinitionResponse,
+  LspReferencesResponse,
+  LspSymbolsResponse,
+  LspDiagnosticsResponse,
 } from './client.js';
 
 export {
