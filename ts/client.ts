@@ -529,6 +529,100 @@ export interface GetDefaultModelResponse {
   model?: string;
 }
 
+// --- Planning & Goal Tracking Types ---
+
+export type Complexity = 'COMPLEXITY_UNKNOWN' | 'COMPLEXITY_SIMPLE' | 'COMPLEXITY_MEDIUM' | 'COMPLEXITY_COMPLEX' | 'COMPLEXITY_VERY_COMPLEX';
+export type StepStatus = 'STEP_STATUS_UNKNOWN' | 'STEP_STATUS_PENDING' | 'STEP_STATUS_IN_PROGRESS' | 'STEP_STATUS_COMPLETED' | 'STEP_STATUS_FAILED' | 'STEP_STATUS_SKIPPED';
+
+export interface PlanStep {
+  id: string;
+  description: string;
+  tool?: string;
+  dependencies: string[];
+  status: StepStatus;
+  successCriteria: string[];
+}
+
+export interface ExecutionPlan {
+  goal: string;
+  steps: PlanStep[];
+  complexity: Complexity;
+  requiredTools: string[];
+  estimatedSteps: number;
+}
+
+export interface AgentGoal {
+  description: string;
+  successCriteria: string[];
+  progress: number;
+  achieved: boolean;
+  createdAt: number;
+  achievedAt?: number;
+}
+
+export interface CreatePlanResponse {
+  plan?: ExecutionPlan;
+}
+
+export interface GetPlanResponse {
+  plan?: ExecutionPlan;
+}
+
+export interface ExtractGoalResponse {
+  goal?: AgentGoal;
+}
+
+export interface CheckGoalAchievementResponse {
+  achieved: boolean;
+  progress: number;
+  remainingCriteria: string[];
+}
+
+// --- Memory System Types ---
+
+export type MemoryType = 'MEMORY_TYPE_UNKNOWN' | 'MEMORY_TYPE_EPISODIC' | 'MEMORY_TYPE_SEMANTIC' | 'MEMORY_TYPE_PROCEDURAL' | 'MEMORY_TYPE_WORKING';
+
+export interface MemoryItem {
+  id: string;
+  content: string;
+  timestamp: number;
+  importance: number;
+  tags: string[];
+  memoryType: MemoryType;
+  metadata: Record<string, string>;
+  accessCount: number;
+  lastAccessed?: number;
+}
+
+export interface MemoryStats {
+  longTermCount: number;
+  shortTermCount: number;
+  workingCount: number;
+}
+
+export interface StoreMemoryResponse {
+  success: boolean;
+  memoryId: string;
+}
+
+export interface RetrieveMemoryResponse {
+  memory?: MemoryItem;
+}
+
+export interface SearchMemoriesResponse {
+  memories: MemoryItem[];
+  totalCount: number;
+}
+
+export interface GetMemoryStatsResponse {
+  stats?: MemoryStats;
+}
+
+export interface ClearMemoriesResponse {
+  success: boolean;
+  clearedCount: number;
+}
+
 // ============================================================================
 // Client Options
 // ============================================================================
@@ -1117,6 +1211,122 @@ export class A3sClient {
    */
   async getDefaultModel(): Promise<GetDefaultModelResponse> {
     return this.promisify('getDefaultModel', {});
+  }
+
+  // ==========================================================================
+  // Planning & Goal Tracking
+  // ==========================================================================
+
+  /**
+   * Create an execution plan
+   */
+  async createPlan(
+    sessionId: string,
+    prompt: string,
+    context?: string
+  ): Promise<CreatePlanResponse> {
+    return this.promisify('createPlan', { sessionId, prompt, context });
+  }
+
+  /**
+   * Get an existing plan
+   */
+  async getPlan(sessionId: string, planId: string): Promise<GetPlanResponse> {
+    return this.promisify('getPlan', { sessionId, planId });
+  }
+
+  /**
+   * Extract goal from prompt
+   */
+  async extractGoal(
+    sessionId: string,
+    prompt: string
+  ): Promise<ExtractGoalResponse> {
+    return this.promisify('extractGoal', { sessionId, prompt });
+  }
+
+  /**
+   * Check if goal is achieved
+   */
+  async checkGoalAchievement(
+    sessionId: string,
+    goal: AgentGoal,
+    currentState: string
+  ): Promise<CheckGoalAchievementResponse> {
+    return this.promisify('checkGoalAchievement', {
+      sessionId,
+      goal,
+      currentState,
+    });
+  }
+
+  // ==========================================================================
+  // Memory System
+  // ==========================================================================
+
+  /**
+   * Store a memory item
+   */
+  async storeMemory(
+    sessionId: string,
+    memory: MemoryItem
+  ): Promise<StoreMemoryResponse> {
+    return this.promisify('storeMemory', { sessionId, memory });
+  }
+
+  /**
+   * Retrieve a memory by ID
+   */
+  async retrieveMemory(
+    sessionId: string,
+    memoryId: string
+  ): Promise<RetrieveMemoryResponse> {
+    return this.promisify('retrieveMemory', { sessionId, memoryId });
+  }
+
+  /**
+   * Search memories
+   */
+  async searchMemories(
+    sessionId: string,
+    query?: string,
+    tags?: string[],
+    limit?: number,
+    recentOnly?: boolean,
+    minImportance?: number
+  ): Promise<SearchMemoriesResponse> {
+    return this.promisify('searchMemories', {
+      sessionId,
+      query,
+      tags: tags || [],
+      limit: limit || 10,
+      recentOnly: recentOnly || false,
+      minImportance,
+    });
+  }
+
+  /**
+   * Get memory statistics
+   */
+  async getMemoryStats(sessionId: string): Promise<GetMemoryStatsResponse> {
+    return this.promisify('getMemoryStats', { sessionId });
+  }
+
+  /**
+   * Clear memories
+   */
+  async clearMemories(
+    sessionId: string,
+    clearLongTerm?: boolean,
+    clearShortTerm?: boolean,
+    clearWorking?: boolean
+  ): Promise<ClearMemoriesResponse> {
+    return this.promisify('clearMemories', {
+      sessionId,
+      clearLongTerm: clearLongTerm || false,
+      clearShortTerm: clearShortTerm || false,
+      clearWorking: clearWorking || false,
+    });
   }
 
   // ==========================================================================

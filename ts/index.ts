@@ -104,6 +104,25 @@ export type {
   RemoveProviderResponse,
   SetDefaultModelResponse,
   GetDefaultModelResponse,
+  // Planning & Goal Tracking types
+  Complexity,
+  StepStatus,
+  PlanStep,
+  ExecutionPlan,
+  AgentGoal,
+  CreatePlanResponse,
+  GetPlanResponse,
+  ExtractGoalResponse,
+  CheckGoalAchievementResponse,
+  // Memory System types
+  MemoryType,
+  MemoryItem,
+  MemoryStats,
+  StoreMemoryResponse,
+  RetrieveMemoryResponse,
+  SearchMemoriesResponse,
+  GetMemoryStatsResponse,
+  ClearMemoriesResponse,
 } from './client.js';
 
 export {
