@@ -141,3 +141,37 @@ export type {
   ModelConfigEntry,
   ModelConfig,
 } from './config.js';
+
+// OpenAI-Compatible Types and Utilities
+export {
+  // Conversion functions
+  openAIRoleToA3S,
+  a3sRoleToOpenAI,
+  openAIMessageToA3S,
+  a3sMessageToOpenAI,
+  openAIMessagesToA3S,
+  normalizeMessage,
+  normalizeMessages,
+  a3sResponseToOpenAI,
+  a3sChunkToOpenAI,
+  // Type guards
+  isOpenAIFormat,
+  isTextContent,
+  isImageContent,
+} from './openai-compat.js';
+
+export type {
+  // OpenAI-compatible types
+  OpenAIRole,
+  OpenAIMessage,
+  OpenAITextContent,
+  OpenAIImageContent,
+  OpenAIContentPart,
+  OpenAIToolCall,
+  OpenAIChoice,
+  OpenAIUsage,
+  OpenAIChatCompletion,
+  OpenAIDelta,
+  OpenAIStreamChoice,
+  OpenAIChatCompletionChunk,
+} from './openai-compat.js';

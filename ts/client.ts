@@ -9,6 +9,14 @@ import * as protoLoader from '@grpc/proto-loader';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { loadConfigFromFile, loadConfigFromDir } from './config.js';
+import {
+  normalizeMessages,
+  type OpenAIMessage,
+  type OpenAIChatCompletion,
+  type OpenAIChatCompletionChunk,
+  a3sResponseToOpenAI,
+  a3sChunkToOpenAI,
+} from './openai-compat.js';
 
 // Get the directory of this module
 const __filename = fileURLToPath(import.meta.url);
@@ -851,50 +859,119 @@ export class A3sClient {
 
   /**
    * Generate a response (unary)
+   *
+   * Supports both A3S and OpenAI message formats:
+   * - A3S: { role: 'ROLE_USER', content: '...' }
+   * - OpenAI: { role: 'user', content: '...' }
    */
   async generate(
     sessionId: string,
-    messages: Message[]
+    messages: (Message | OpenAIMessage)[]
   ): Promise<GenerateResponse> {
-    return this.promisify('generate', { sessionId, messages });
+    const normalizedMessages = normalizeMessages(messages);
+    return this.promisify('generate', { sessionId, messages: normalizedMessages });
   }
 
   /**
    * Generate a response (streaming)
+   *
+   * Supports both A3S and OpenAI message formats.
    */
   streamGenerate(
     sessionId: string,
-    messages: Message[]
+    messages: (Message | OpenAIMessage)[]
   ): AsyncIterable<GenerateChunk> {
-    const call = this.client.streamGenerate({ sessionId, messages });
+    const normalizedMessages = normalizeMessages(messages);
+    const call = this.client.streamGenerate({ sessionId, messages: normalizedMessages });
     return this.streamToAsyncIterable(call);
   }
 
   /**
    * Generate structured output (unary)
+   *
+   * Supports both A3S and OpenAI message formats.
    */
   async generateStructured(
     sessionId: string,
-    messages: Message[],
+    messages: (Message | OpenAIMessage)[],
     schema: string
   ): Promise<GenerateStructuredResponse> {
-    return this.promisify('generateStructured', { sessionId, messages, schema });
+    const normalizedMessages = normalizeMessages(messages);
+    return this.promisify('generateStructured', { sessionId, messages: normalizedMessages, schema });
   }
 
   /**
    * Generate structured output (streaming)
+   *
+   * Supports both A3S and OpenAI message formats.
    */
   streamGenerateStructured(
     sessionId: string,
-    messages: Message[],
+    messages: (Message | OpenAIMessage)[],
     schema: string
   ): AsyncIterable<GenerateStructuredChunk> {
+    const normalizedMessages = normalizeMessages(messages);
     const call = this.client.streamGenerateStructured({
       sessionId,
-      messages,
+      messages: normalizedMessages,
       schema,
     });
     return this.streamToAsyncIterable(call);
+  }
+
+  // ==========================================================================
+  // OpenAI-Compatible Methods
+  // ==========================================================================
+
+  /**
+   * Generate a response in OpenAI ChatCompletion format
+   *
+   * This method provides full OpenAI API compatibility.
+   *
+   * @example
+   * ```typescript
+   * const completion = await client.chatCompletion(sessionId, [
+   *   { role: 'user', content: 'Hello!' }
+   * ]);
+   * console.log(completion.choices[0].message.content);
+   * ```
+   */
+  async chatCompletion(
+    sessionId: string,
+    messages: OpenAIMessage[],
+    options?: {
+      model?: string;
+    }
+  ): Promise<OpenAIChatCompletion> {
+    const response = await this.generate(sessionId, messages);
+    return a3sResponseToOpenAI(response, options?.model);
+  }
+
+  /**
+   * Stream a response in OpenAI ChatCompletionChunk format
+   *
+   * This method provides full OpenAI API compatibility for streaming.
+   *
+   * @example
+   * ```typescript
+   * for await (const chunk of client.streamChatCompletion(sessionId, [
+   *   { role: 'user', content: 'Hello!' }
+   * ])) {
+   *   const content = chunk.choices[0].delta.content;
+   *   if (content) process.stdout.write(content);
+   * }
+   * ```
+   */
+  async *streamChatCompletion(
+    sessionId: string,
+    messages: OpenAIMessage[],
+    options?: {
+      model?: string;
+    }
+  ): AsyncIterable<OpenAIChatCompletionChunk> {
+    for await (const chunk of this.streamGenerate(sessionId, messages)) {
+      yield a3sChunkToOpenAI(chunk, options?.model);
+    }
   }
 
   // ==========================================================================
