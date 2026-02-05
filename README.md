@@ -96,7 +96,7 @@ async function main() {
 
   // Generate a response (streaming)
   for await (const chunk of client.streamGenerate(session.sessionId, [
-    { role: 'ROLE_USER', content: 'Explain this codebase structure' }
+    { role: 'user', content: 'Explain this codebase structure' }
   ])) {
     if (chunk.type === 'CHUNK_TYPE_CONTENT' && chunk.content) {
       process.stdout.write(chunk.content);
@@ -162,14 +162,14 @@ async function multiTurnChat() {
 
   // First turn
   for await (const chunk of client.streamGenerate(sessionId, [
-    { role: 'ROLE_USER', content: 'List all TypeScript files in this project' }
+    { role: 'user', content: 'List all TypeScript files in this project' }
   ])) {
     if (chunk.content) process.stdout.write(chunk.content);
   }
 
   // Second turn - context is preserved
   for await (const chunk of client.streamGenerate(sessionId, [
-    { role: 'ROLE_USER', content: 'Now analyze the main entry point' }
+    { role: 'user', content: 'Now analyze the main entry point' }
   ])) {
     if (chunk.content) process.stdout.write(chunk.content);
   }
@@ -218,7 +218,7 @@ async function subscribeToEvents() {
 
   // Generate with tool usage
   for await (const chunk of client.streamGenerate(sessionId, [
-    { role: 'ROLE_USER', content: 'Read the README.md file' }
+    { role: 'user', content: 'Read the README.md file' }
   ])) {
     if (chunk.content) process.stdout.write(chunk.content);
   }
@@ -282,7 +282,7 @@ async function hitlDemo() {
 
   // This will trigger confirmation
   for await (const chunk of client.streamGenerate(sessionId, [
-    { role: 'ROLE_USER', content: 'Run "ls -la" command' }
+    { role: 'user', content: 'Run "ls -la" command' }
   ])) {
     if (chunk.content) process.stdout.write(chunk.content);
   }
@@ -348,7 +348,7 @@ async function permissionDemo() {
 
   // This will be allowed (read-only tools)
   for await (const chunk of client.streamGenerate(sessionId, [
-    { role: 'ROLE_USER', content: 'List all files in the current directory' }
+    { role: 'user', content: 'List all files in the current directory' }
   ])) {
     if (chunk.content) process.stdout.write(chunk.content);
   }
@@ -428,7 +428,7 @@ async function contextDemo() {
   // Have a long conversation...
   for (let i = 0; i < 10; i++) {
     await client.generate(sessionId, [
-      { role: 'ROLE_USER', content: `Question ${i + 1}: Tell me about this project` }
+      { role: 'user', content: `Question ${i + 1}: Tell me about this project` }
     ]);
   }
 
@@ -478,7 +478,7 @@ async function skillsDemo() {
 
   // Use the custom skill
   for await (const chunk of client.streamGenerate(sessionId, [
-    { role: 'ROLE_USER', content: 'Use my-custom-tool to process data' }
+    { role: 'user', content: 'Use my-custom-tool to process data' }
   ])) {
     if (chunk.content) process.stdout.write(chunk.content);
   }
@@ -524,7 +524,7 @@ async function todoDemo() {
 
   // Agent works on tasks...
   await client.generate(sessionId, [
-    { role: 'ROLE_USER', content: 'Complete the first todo item' }
+    { role: 'user', content: 'Complete the first todo item' }
   ]);
 
   // Get updated todos
@@ -558,7 +558,7 @@ async function controlDemo() {
   // Start a long-running operation
   const generatePromise = (async () => {
     for await (const chunk of client.streamGenerate(sessionId, [
-      { role: 'ROLE_USER', content: 'Analyze all files in this large project' }
+      { role: 'user', content: 'Analyze all files in this large project' }
     ])) {
       if (chunk.content) process.stdout.write(chunk.content);
     }
