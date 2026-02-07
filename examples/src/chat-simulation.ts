@@ -97,7 +97,7 @@ Always be concise and provide working code examples.`,
     printUser('Write a TypeScript function that validates an email address');
 
     const response1 = await client.generate(sessionId, [
-      { role: 'ROLE_USER', content: 'Write a TypeScript function that validates an email address' }
+      { role: 'user', content: 'Write a TypeScript function that validates an email address' }
     ]);
 
     if (response1.message?.content) {
@@ -117,7 +117,7 @@ Always be concise and provide working code examples.`,
     printUser('Can you add unit tests for this function?');
 
     const response2 = await client.generate(sessionId, [
-      { role: 'ROLE_USER', content: 'Can you add unit tests for this function?' }
+      { role: 'user', content: 'Can you add unit tests for this function?' }
     ]);
 
     if (response2.message?.content) {
@@ -135,14 +135,14 @@ Always be concise and provide working code examples.`,
 
     let fullResponse = '';
     for await (const chunk of client.streamGenerate(sessionId, [
-      { role: 'ROLE_USER', content: 'Create a REST API endpoint for user registration with validation. Use Express.js and TypeScript.' }
+      { role: 'user', content: 'Create a REST API endpoint for user registration with validation. Use Express.js and TypeScript.' }
     ])) {
-      if (chunk.type === 'CHUNK_TYPE_CONTENT') {
+      if (chunk.type === 'content') {
         process.stdout.write(chunk.content);
         fullResponse += chunk.content;
-      } else if (chunk.type === 'CHUNK_TYPE_TOOL_CALL' && chunk.toolCall) {
+      } else if (chunk.type === 'tool_call' && chunk.toolCall) {
         console.log(`\n\x1b[35m🔧 Calling tool: ${chunk.toolCall.name}\x1b[0m`);
-      } else if (chunk.type === 'CHUNK_TYPE_TOOL_RESULT' && chunk.toolResult) {
+      } else if (chunk.type === 'tool_result' && chunk.toolResult) {
         const output = chunk.toolResult.output || chunk.toolResult.error || '';
         console.log(`\x1b[35m   Result: ${output.substring(0, 100)}...\x1b[0m`);
       }
@@ -167,7 +167,7 @@ function calculateTotal(items) {
     printUser(`I have a bug in this code, can you help?\n${buggyCode}`);
 
     const debugResponse = await client.generate(sessionId, [
-      { role: 'ROLE_USER', content: `I have a bug in this code, can you help find and fix it?\n\n${buggyCode}` }
+      { role: 'user', content: `I have a bug in this code, can you help find and fix it?\n\n${buggyCode}` }
     ]);
 
     if (debugResponse.message?.content) {
@@ -223,7 +223,7 @@ function calculateTotal(items) {
     printUser('What is the time complexity of quicksort?');
 
     const quickResponse = await client.generate(sessionId, [
-      { role: 'ROLE_USER', content: 'What is the time complexity of quicksort? Answer briefly.' }
+      { role: 'user', content: 'What is the time complexity of quicksort? Answer briefly.' }
     ]);
 
     if (quickResponse.message?.content) {
@@ -246,9 +246,9 @@ function calculateTotal(items) {
     process.stdout.write('\x1b[32m🤖 Assistant:\x1b[0m ');
 
     for await (const chunk of client.streamGenerate(sessionId, [
-      { role: 'ROLE_USER', content: 'Create a React component for a user profile card with avatar, name, and bio. Use TypeScript and modern React patterns.' }
+      { role: 'user', content: 'Create a React component for a user profile card with avatar, name, and bio. Use TypeScript and modern React patterns.' }
     ])) {
-      if (chunk.type === 'CHUNK_TYPE_CONTENT') {
+      if (chunk.type === 'content') {
         process.stdout.write(chunk.content);
       }
     }

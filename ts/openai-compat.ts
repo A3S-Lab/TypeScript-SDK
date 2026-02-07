@@ -145,20 +145,21 @@ export interface OpenAIChatCompletionChunk {
 
 /**
  * Convert OpenAI role to A3S MessageRole
+ * Since proto now uses OpenAI-compatible string roles, this is a simple passthrough
  */
 export function openAIRoleToA3S(role: OpenAIRole): MessageRole {
   switch (role) {
     case 'user':
-      return 'ROLE_USER';
+      return 'user';
     case 'assistant':
-      return 'ROLE_ASSISTANT';
+      return 'assistant';
     case 'system':
-      return 'ROLE_SYSTEM';
+      return 'system';
     case 'tool':
     case 'function':
-      return 'ROLE_TOOL';
+      return 'tool';
     default:
-      return 'ROLE_UNKNOWN';
+      return 'user';
   }
 }
 
@@ -211,16 +212,17 @@ export function openAIToolCallToA3S(toolCall: OpenAIToolCall): ToolCall {
 
 /**
  * Convert A3S MessageRole to OpenAI role
+ * Since proto now uses OpenAI-compatible string roles, this is a simple passthrough
  */
 export function a3sRoleToOpenAI(role: MessageRole): OpenAIRole {
   switch (role) {
-    case 'ROLE_USER':
+    case 'user':
       return 'user';
-    case 'ROLE_ASSISTANT':
+    case 'assistant':
       return 'assistant';
-    case 'ROLE_SYSTEM':
+    case 'system':
       return 'system';
-    case 'ROLE_TOOL':
+    case 'tool':
       return 'tool';
     default:
       return 'user';
@@ -259,18 +261,19 @@ export function a3sToolCallToOpenAI(toolCall: ToolCall): OpenAIToolCall {
 
 /**
  * Convert A3S FinishReason to OpenAI finish_reason
+ * Since proto now uses OpenAI-compatible string values, this is a simple passthrough
  */
 export function a3sFinishReasonToOpenAI(
   reason: FinishReason
 ): 'stop' | 'length' | 'tool_calls' | 'content_filter' | null {
   switch (reason) {
-    case 'FINISH_REASON_STOP':
+    case 'stop':
       return 'stop';
-    case 'FINISH_REASON_LENGTH':
+    case 'length':
       return 'length';
-    case 'FINISH_REASON_TOOL_CALLS':
+    case 'tool_calls':
       return 'tool_calls';
-    case 'FINISH_REASON_CONTENT_FILTER':
+    case 'content_filter':
       return 'content_filter';
     default:
       return null;
@@ -324,6 +327,7 @@ export function a3sResponseToOpenAI(
 
 /**
  * Convert A3S GenerateChunk to OpenAI ChatCompletionChunk
+ * Since proto now uses OpenAI-compatible string values, conversion is simplified
  */
 export function a3sChunkToOpenAI(
   chunk: GenerateChunk,
@@ -331,11 +335,11 @@ export function a3sChunkToOpenAI(
 ): OpenAIChatCompletionChunk {
   const delta: OpenAIDelta = {};
 
-  if (chunk.type === 'CHUNK_TYPE_CONTENT' && chunk.content) {
+  if (chunk.type === 'content' && chunk.content) {
     delta.content = chunk.content;
   }
 
-  if (chunk.type === 'CHUNK_TYPE_TOOL_CALL' && chunk.toolCall) {
+  if (chunk.type === 'tool_call' && chunk.toolCall) {
     delta.tool_calls = [
       {
         id: chunk.toolCall.id,
@@ -350,8 +354,8 @@ export function a3sChunkToOpenAI(
 
   let finishReason: 'stop' | 'length' | 'tool_calls' | 'content_filter' | null =
     null;
-  if (chunk.type === 'CHUNK_TYPE_DONE') {
-    finishReason = 'stop';
+  if (chunk.type === 'done' || chunk.finishReason) {
+    finishReason = chunk.finishReason ? a3sFinishReasonToOpenAI(chunk.finishReason) : 'stop';
   }
 
   return {
@@ -375,16 +379,19 @@ export function a3sChunkToOpenAI(
 
 /**
  * Check if a message uses OpenAI format (lowercase role)
+ * Since proto now uses OpenAI-compatible string roles, all messages are in OpenAI format
  */
 export function isOpenAIFormat(
   msg: Message | OpenAIMessage
 ): msg is OpenAIMessage {
   const role = msg.role as string;
+  // Both A3S and OpenAI now use the same lowercase role strings
   return ['user', 'assistant', 'system', 'tool', 'function'].includes(role);
 }
 
 /**
  * Normalize message to A3S format (accepts both OpenAI and A3S formats)
+ * Since proto now uses OpenAI-compatible string roles, this is mostly a passthrough
  */
 export function normalizeMessage(msg: Message | OpenAIMessage): Message {
   if (isOpenAIFormat(msg)) {

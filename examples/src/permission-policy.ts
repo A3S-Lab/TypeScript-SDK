@@ -106,7 +106,7 @@ async function permissionPolicyExample(): Promise<void> {
     console.log('6. Testing with generation (allowed operation)...');
     const response = await client.generate(session.sessionId, [
       {
-        role: 'ROLE_USER',
+        role: 'user',
         content: 'Read the file /tmp/test.txt',
       },
     ]);

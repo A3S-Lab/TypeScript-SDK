@@ -77,7 +77,7 @@ async function main() {
 
     for await (const chunk of client.streamGenerate(sessionId, [
       {
-        role: 'ROLE_USER',
+        role: 'user',
         content: `Create a React component for a todo list with:
 - Add/remove/toggle todos
 - TypeScript types
@@ -87,11 +87,11 @@ async function main() {
 Use any available skills to help.`
       }
     ])) {
-      if (chunk.type === 'CHUNK_TYPE_CONTENT') {
+      if (chunk.type === 'content') {
         process.stdout.write(chunk.content);
-      } else if (chunk.type === 'CHUNK_TYPE_TOOL_CALL' && chunk.toolCall) {
+      } else if (chunk.type === 'tool_call' && chunk.toolCall) {
         console.log(`\n\n🔧 Using tool: ${chunk.toolCall.name}`);
-      } else if (chunk.type === 'CHUNK_TYPE_TOOL_RESULT' && chunk.toolResult) {
+      } else if (chunk.type === 'tool_result' && chunk.toolResult) {
         if (chunk.toolResult.success) {
           console.log('   ✓ Tool executed successfully');
         } else if (chunk.toolResult.error) {
@@ -107,7 +107,7 @@ Use any available skills to help.`
 
     for await (const chunk of client.streamGenerate(sessionId, [
       {
-        role: 'ROLE_USER',
+        role: 'user',
         content: `Help me set up a new TypeScript project with:
 1. package.json with necessary dependencies
 2. tsconfig.json with strict settings
@@ -117,9 +117,9 @@ Use any available skills to help.`
 Use skills if available to create the files.`
       }
     ])) {
-      if (chunk.type === 'CHUNK_TYPE_CONTENT') {
+      if (chunk.type === 'content') {
         process.stdout.write(chunk.content);
-      } else if (chunk.type === 'CHUNK_TYPE_TOOL_CALL' && chunk.toolCall) {
+      } else if (chunk.type === 'tool_call' && chunk.toolCall) {
         console.log(`\n\n🔧 Tool: ${chunk.toolCall.name}`);
       }
     }
@@ -148,7 +148,7 @@ function getData(id) {
 
     const reviewResponse = await client.generate(sessionId, [
       {
-        role: 'ROLE_USER',
+        role: 'user',
         content: `Review this code and suggest improvements:\n\n${codeToReview}\n\nConsider: TypeScript, error handling, async/await, and best practices.`
       }
     ]);
@@ -164,11 +164,11 @@ function getData(id) {
 
     for await (const chunk of client.streamGenerate(sessionId, [
       {
-        role: 'ROLE_USER',
+        role: 'user',
         content: 'Now generate comprehensive unit tests for the improved version using Jest and TypeScript.'
       }
     ])) {
-      if (chunk.type === 'CHUNK_TYPE_CONTENT') {
+      if (chunk.type === 'content') {
         process.stdout.write(chunk.content);
       }
     }

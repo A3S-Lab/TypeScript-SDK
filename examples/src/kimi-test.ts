@@ -78,7 +78,7 @@ async function runKimiTest(): Promise<void> {
     // Generate a simple response
     console.log('4. Generating a response...');
     const response = await client.generate(session.sessionId, [
-      { role: 'ROLE_USER', content: '用一句话介绍你自己' }
+      { role: 'user', content: '用一句话介绍你自己' }
     ]);
     console.log('✓ Response received:');
     if (response.message) {
@@ -90,11 +90,11 @@ async function runKimiTest(): Promise<void> {
     console.log('5. Testing streaming generation...');
     process.stdout.write('   Response: ');
     const stream = client.streamGenerate(session.sessionId, [
-      { role: 'ROLE_USER', content: '从1数到5' }
+      { role: 'user', content: '从1数到5' }
     ]);
 
     for await (const chunk of stream) {
-      if (chunk.type === 'CHUNK_TYPE_CONTENT' && chunk.content) {
+      if (chunk.type === 'content' && chunk.content) {
         process.stdout.write(chunk.content);
       }
     }

@@ -121,7 +121,7 @@ async function runSimpleTest(): Promise<void> {
     // Generate a response
     console.log('8. Generating a response...');
     const response = await client.generate(session.sessionId, [
-      { role: 'ROLE_USER', content: 'Say hello in one word' }
+      { role: 'user', content: 'Say hello in one word' }
     ]);
     console.log('✓ Response received:');
     if (response.message) {
@@ -134,11 +134,11 @@ async function runSimpleTest(): Promise<void> {
     console.log('9. Testing streaming generation...');
     process.stdout.write('   Response: ');
     const stream = client.streamGenerate(session.sessionId, [
-      { role: 'ROLE_USER', content: 'Count from 1 to 3' }
+      { role: 'user', content: 'Count from 1 to 3' }
     ]);
 
     for await (const chunk of stream) {
-      if (chunk.type === 'CHUNK_TYPE_CONTENT' && chunk.content) {
+      if (chunk.type === 'content' && chunk.content) {
         process.stdout.write(chunk.content);
       }
     }

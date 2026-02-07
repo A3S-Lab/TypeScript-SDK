@@ -404,7 +404,7 @@ describe('A3sClient', () => {
       const mockResponse: GenerateResponse = {
         sessionId: 'session-123',
         toolCalls: [],
-        finishReason: 'FINISH_REASON_STOP',
+        finishReason: 'stop',
         metadata: {},
       };
       mockGrpcClient.generate.mockImplementation(
@@ -413,7 +413,7 @@ describe('A3sClient', () => {
         }
       );
 
-      const messages = [{ role: 'ROLE_USER' as const, content: 'Hello' }];
+      const messages = [{ role: 'user' as const, content: 'Hello' }];
       const result = await client.generate('session-123', messages);
       expect(result).toEqual(mockResponse);
     });

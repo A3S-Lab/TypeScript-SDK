@@ -54,7 +54,7 @@ async function skillManagementExample(): Promise<void> {
     console.log('4. Using the skill...');
     const response = await client.generate(session.sessionId, [
       {
-        role: 'ROLE_USER',
+        role: 'user',
         content: 'How do I create a video with Remotion?',
       },
     ]);

@@ -28,15 +28,15 @@ async function main() {
     console.log('Streaming response:');
 
     const messages = [
-      { role: 'ROLE_USER' as const, content: 'Write a haiku about coding.' }
+      { role: 'user' as const, content: 'Write a haiku about coding.' }
     ];
 
     for await (const chunk of client.streamGenerate(sessionId, messages)) {
-      if (chunk.type === 'CHUNK_TYPE_CONTENT') {
+      if (chunk.type === 'content') {
         process.stdout.write(chunk.content);
-      } else if (chunk.type === 'CHUNK_TYPE_TOOL_CALL' && chunk.toolCall) {
+      } else if (chunk.type === 'tool_call' && chunk.toolCall) {
         console.log(`\n[Tool Call: ${chunk.toolCall.name}]`);
-      } else if (chunk.type === 'CHUNK_TYPE_DONE') {
+      } else if (chunk.type === 'done') {
         console.log('\n[Stream Complete]');
       }
     }
@@ -56,7 +56,7 @@ async function main() {
     });
 
     const structuredMessages = [
-      { role: 'ROLE_USER' as const, content: 'Describe TypeScript in structured format.' }
+      { role: 'user' as const, content: 'Describe TypeScript in structured format.' }
     ];
 
     let structuredData = '';
@@ -100,7 +100,7 @@ async function main() {
     await new Promise(resolve => setTimeout(resolve, 100)); // Small delay
 
     const eventMessages = [
-      { role: 'ROLE_USER' as const, content: 'Say hello briefly.' }
+      { role: 'user' as const, content: 'Say hello briefly.' }
     ];
 
     console.log('Triggering generation to produce events...');

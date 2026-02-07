@@ -117,7 +117,7 @@ async function eventStreamingExample(): Promise<void> {
 
     const response = await client.generate(session.sessionId, [
       {
-        role: 'ROLE_USER',
+        role: 'user',
         content: 'List files in /tmp directory and tell me what you find',
       },
     ]);

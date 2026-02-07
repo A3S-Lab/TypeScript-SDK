@@ -55,7 +55,7 @@ Always provide working, production-ready code.`,
 
     for await (const chunk of client.streamGenerate(sessionId, [
       {
-        role: 'ROLE_USER',
+        role: 'user',
         content: `Create a TypeScript module for a simple calculator with add, subtract, multiply, and divide functions.
 
 Requirements:
@@ -68,9 +68,9 @@ Requirements:
 Please create the files in the workspace.`
       }
     ])) {
-      if (chunk.type === 'CHUNK_TYPE_CONTENT') {
+      if (chunk.type === 'content') {
         process.stdout.write(chunk.content);
-      } else if (chunk.type === 'CHUNK_TYPE_TOOL_CALL' && chunk.toolCall) {
+      } else if (chunk.type === 'tool_call' && chunk.toolCall) {
         console.log(`\n\n🔧 Tool: ${chunk.toolCall.name}`);
         if (chunk.toolCall.name === 'Write' || chunk.toolCall.name === 'write') {
           codeGenerated = true;
@@ -79,7 +79,7 @@ Please create the files in the workspace.`
             testFileCreated = true;
           }
         }
-      } else if (chunk.type === 'CHUNK_TYPE_TOOL_RESULT' && chunk.toolResult) {
+      } else if (chunk.type === 'tool_result' && chunk.toolResult) {
         if (chunk.toolResult.success) {
           console.log('   ✓ Success');
         } else if (chunk.toolResult.error) {
@@ -121,7 +121,7 @@ export function processData(data) {
     console.log('Assistant: ');
     for await (const chunk of client.streamGenerate(sessionId, [
       {
-        role: 'ROLE_USER',
+        role: 'user',
         content: `Please read sample.ts, review the code, and suggest improvements. Consider:
 - TypeScript best practices
 - Modern JavaScript features
@@ -131,11 +131,11 @@ export function processData(data) {
 Then create an improved version as sample-improved.ts`
       }
     ])) {
-      if (chunk.type === 'CHUNK_TYPE_CONTENT') {
+      if (chunk.type === 'content') {
         process.stdout.write(chunk.content);
-      } else if (chunk.type === 'CHUNK_TYPE_TOOL_CALL' && chunk.toolCall) {
+      } else if (chunk.type === 'tool_call' && chunk.toolCall) {
         console.log(`\n\n🔧 Tool: ${chunk.toolCall.name}`);
-      } else if (chunk.type === 'CHUNK_TYPE_TOOL_RESULT' && chunk.toolResult) {
+      } else if (chunk.type === 'tool_result' && chunk.toolResult) {
         if (chunk.toolResult.success) {
           console.log('   ✓ Success');
         } else if (chunk.toolResult.error) {
@@ -155,7 +155,7 @@ Then create an improved version as sample-improved.ts`
     console.log('Assistant: ');
     for await (const chunk of client.streamGenerate(sessionId, [
       {
-        role: 'ROLE_USER',
+        role: 'user',
         content: `Update calculator.ts to add:
 1. Proper error handling with custom error types
 2. Input validation
@@ -165,9 +165,9 @@ Then create an improved version as sample-improved.ts`
 Keep the existing functionality but make it production-ready.`
       }
     ])) {
-      if (chunk.type === 'CHUNK_TYPE_CONTENT') {
+      if (chunk.type === 'content') {
         process.stdout.write(chunk.content);
-      } else if (chunk.type === 'CHUNK_TYPE_TOOL_CALL' && chunk.toolCall) {
+      } else if (chunk.type === 'tool_call' && chunk.toolCall) {
         console.log(`\n\n🔧 Tool: ${chunk.toolCall.name}`);
       }
     }
@@ -183,7 +183,7 @@ Keep the existing functionality but make it production-ready.`
     console.log('Assistant: ');
     for await (const chunk of client.streamGenerate(sessionId, [
       {
-        role: 'ROLE_USER',
+        role: 'user',
         content: `Create a basic REST API project structure with:
 - src/index.ts (entry point)
 - src/routes/users.ts (user routes)
@@ -197,11 +197,11 @@ Keep the existing functionality but make it production-ready.`
 Use Express.js and TypeScript. Create all files with basic implementations.`
       }
     ])) {
-      if (chunk.type === 'CHUNK_TYPE_CONTENT') {
+      if (chunk.type === 'content') {
         process.stdout.write(chunk.content);
-      } else if (chunk.type === 'CHUNK_TYPE_TOOL_CALL' && chunk.toolCall) {
+      } else if (chunk.type === 'tool_call' && chunk.toolCall) {
         console.log(`\n\n🔧 Tool: ${chunk.toolCall.name}`);
-      } else if (chunk.type === 'CHUNK_TYPE_TOOL_RESULT' && chunk.toolResult) {
+      } else if (chunk.type === 'tool_result' && chunk.toolResult) {
         if (chunk.toolResult.success) {
           console.log('   ✓ Created');
         } else if (chunk.toolResult.error) {
@@ -234,7 +234,7 @@ export async function fetchUserData(userId: string) {
     console.log('Assistant: ');
     for await (const chunk of client.streamGenerate(sessionId, [
       {
-        role: 'ROLE_USER',
+        role: 'user',
         content: `Read buggy.ts and identify all bugs and issues. Then create a fixed version as buggy-fixed.ts with:
 1. All bugs fixed
 2. Proper error handling
@@ -244,9 +244,9 @@ export async function fetchUserData(userId: string) {
 Explain what was wrong and how you fixed it.`
       }
     ])) {
-      if (chunk.type === 'CHUNK_TYPE_CONTENT') {
+      if (chunk.type === 'content') {
         process.stdout.write(chunk.content);
-      } else if (chunk.type === 'CHUNK_TYPE_TOOL_CALL' && chunk.toolCall) {
+      } else if (chunk.type === 'tool_call' && chunk.toolCall) {
         console.log(`\n\n🔧 Tool: ${chunk.toolCall.name}`);
       }
     }

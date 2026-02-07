@@ -118,7 +118,7 @@ Config loaded:
 8. Generating a response...
 ✓ Response received:
   Content: Hello!
-  Finish reason: FINISH_REASON_STOP
+  Finish reason: stop
 
 9. Testing streaming generation...
    Response: 1
